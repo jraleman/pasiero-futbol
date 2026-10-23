@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "project": "brighton-match-analysis",
+  "layers": [
+    "iot",
+    "ai",
+    "extras"
+  ],
+  "template": {
+    "name": "mqtt-influx-grafana-ollama-go2rtc",
+    "version": "0.4.0"
+  },
+  "dashboard": {
+    "tabs": [
+      "feed",
+      "video",
+      "grafana",
+      "agent",
+      "services",
+      "edge"
+    ],
+    "theme": "theme",
+    "home": "HOME.md",
+    "vision": {
+      "file": "extras/clips/vision.json"
+    },
+    "feed": {
+      "url": "http://localhost:8090/api/v1/feed",
+      "token": {
+        "layer": "iot",
+        "env": "INGEST_READ_TOKEN"
+      }
+    },
+    "cameras": [
+      {
+        "id": "tactical",
+        "name": "Tactical (live match)",
+        "port": 1984,
+        "path": "/api/stream.mjpeg?src=tactical"
+      },
+      {
+        "id": "tv",
+        "name": "Broadcast (live match)",
+        "port": 1984,
+        "path": "/api/stream.mjpeg?src=tv"
+      }
+    ]
+  }
+}

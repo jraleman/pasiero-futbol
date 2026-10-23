@@ -1,0 +1,253 @@
+{
+  "id": "brightonDeviations",
+  "name": "Brighton · off the plan",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "path": "brighton/deviation",
+        "httpMethod": "POST",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "d-hook",
+      "name": "Deviation",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        100
+      ],
+      "webhookId": "837a88ee-ba2c-54d4-b623-e79b5731da81"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- helpers ---------------------------------------------------------------\n// Settings come from the container environment (ai/.env)\nconst setting = (name, fallback) => {\n    const value = $env[name];\n    return value === undefined || value === '' ? fallback : String(value);\n};\nconst ZONE = setting('TZ', 'Europe/London');\nconst esc = (v) => String(v ?? '').replace(/[&<>\"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n// Whether a webhook call carries the ingest service's NOTIFY_TOKEN\nconst fromIngest = (request) => {\n    const token = setting('NOTIFY_TOKEN', '');\n    return !token || (request.headers || {})['x-notify-token'] === token;\n};\n\n// Colours: the Premier League's purple and its gradient for the brand; the plan's statuses\n// in the status colours, always with their icons (as on the analysis page)\nconst CLUB = '#37003c', NAVY = '#37003c', INK = '#1f0024', MUTED = '#725d79', LINE = '#e3d9e6';\n// The league's gradient, as table cells (email clients don't draw gradients)\nconst GRADIENT = ['#04f5ff', '#00ff85', '#e90052', '#963cff'];\nconst STRIPES = `<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\"><tr>${\n  GRADIENT.map((c) => `<td height=\"6\" style=\"height:6px;font-size:0;line-height:0;background:${c}\">&nbsp;</td>`).join('')}</tr></table>`;\nconst STATUS = { on_plan: ['#0b8a0b', '✓ on plan'], drifting: ['#b7791f', '~ drifting'], off_plan: ['#c42f2f', '✕ off plan'],\n                 no_data: [MUTED, '– no data'] };\nconst CALLS = { pending_review: 'Not called yet', confirmed: 'Flagged for the bench', dismissed: 'Expected' };\n\nconst score = (m) => m.score || `${m.home.code} ${m.score.home}-${m.score.away} ${m.away.code}`;\nconst scoreOf = (m) => `${m.home.code} ${m.score.home}-${m.score.away} ${m.away.code}`;\nconst when = (iso) => DateTime.fromISO(iso).setZone(ZONE).toFormat(\"ccc d LLL, HH:mm\");\nconst roomUrl = () => setting('ANALYSIS_URL', 'http://localhost:8090/analysis/');\n// The analysis room, opened on one deviation or play\nconst roomLink = (site, matchId, ref) => roomUrl() + '#' + [site, matchId, ref].filter(Boolean).map(encodeURIComponent).join('/');\nconst reportLink = (site, matchId, part) => roomUrl() + `report.html?part=${part}#` + [site, matchId].map(encodeURIComponent).join('/');\nconst chip = (status) => `<span style=\"display:inline-block;padding:1px 8px;border-radius:999px;border:1px solid ${STATUS[status][0]};`\n    + `color:${STATUS[status][0]};font-size:12px;font-weight:600;white-space:nowrap\">${esc(STATUS[status][1])}</span>`;\nconst button = (href, text) => `<a href=\"${esc(href)}\" style=\"display:inline-block;background:${CLUB};color:#fff;text-decoration:none;`\n    + `font-weight:600;padding:10px 18px;border-radius:6px\">${esc(text)}</a>`;\n// An email: the band with the brand and the match, then the body\nconst page = (title, match, body) => `<!doctype html><html><body style=\"margin:0;background:#f7f4f8;font-family:Barlow,'Segoe UI',Arial,sans-serif;color:${INK}\">\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f7f4f8\"><tr><td align=\"center\" style=\"padding:20px 10px\">\n<table role=\"presentation\" width=\"660\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:660px;width:100%;background:#fff;border:1px solid ${LINE};border-radius:8px;overflow:hidden\">\n<tr><td style=\"padding:0\">${STRIPES}</td></tr>\n<tr><td style=\"background:${NAVY};color:#fff;padding:13px 22px;font-size:13px;font-weight:600\">Match Intelligence · ${esc(title)}</td></tr>\n<tr><td style=\"padding:18px 22px 4px;font-size:26px;font-weight:800;letter-spacing:.01em\">${esc(match.home.code)}\n  <span style=\"background:${CLUB};color:#fff;padding:2px 10px;border-radius:4px;margin:0 6px\">${match.score.home} – ${match.score.away}</span>${esc(match.away.code)}</td></tr>\n<tr><td style=\"padding:0 22px 14px;color:${MUTED};font-size:13px\">${esc(match.home.name)} v ${esc(match.away.name)} · ${esc(match.competition)}`\n    + `${match.matchday ? ' · Matchday ' + match.matchday : ''}${match.venue ? ' · ' + esc(match.venue) : ''}</td></tr>\n<tr><td style=\"padding:0 22px 22px\">${body}</td></tr>\n<tr><td style=\"padding:14px 22px;border-top:1px solid ${LINE};color:${MUTED};font-size:12px\">Measured by the club's match device every 5 minutes; the plan and the calls are the staff's.${match.synthetic ? ' Demo data (synthetic).' : ''}</td></tr>\n</table></td></tr></table></body></html>`;\n\n// ---- a deviation from the plan → the staff ---------------------------------\n// The ingest service posts every deviation that opens while the match is on.\n// Only the priorities in NOTIFY_PRIORITY (default high: the plan's key\n// targets) go out; the rest wait in the analysis room.\nconst request = $input.first().json;\nif (!fromIngest(request)) return [];\nconst { deviation: d, match } = request.body || {};\nif (!d || !match) return [];\nconst wanted = setting('NOTIFY_PRIORITY', 'high').split(',').map((s) => s.trim());\nif (!wanted.includes('all') && !wanted.includes(d.priority)) return [];\nconst to = setting('STAFF_EMAIL_TO', '');\n\nconst subject = `${d.minute}' ${d.title} — ${scoreOf(match)}`;\nconst link = roomLink(d.site_id, d.match_id, d.deviation_id);\nconst text = [\n    `${d.minute}' · ${d.title}${d.key ? ' (key instruction)' : ''}`,\n    '',\n    d.summary,\n    `What to check: ${d.what_to_check}`,\n    '',\n    `Plan: ${d.plan_title || ''}`,\n    `Open it in the analysis room: ${link}`,\n    ...(d.synthetic_data ? ['', 'Demo data (synthetic).'] : []),\n].join('\\n');\n\nconst body = `\n<p style=\"margin:0 0 10px\"><b style=\"font-size:19px\">${esc(d.title)}</b>\n  <span style=\"font-size:19px;color:${MUTED};margin-left:8px;font-family:'IBM Plex Mono',monospace\">${esc(d.minute)}'</span>\n  ${d.key ? ' <span style=\"color:' + CLUB + ';font-weight:600\">★ key instruction</span>' : ''}</p>\n<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"font-size:14px;margin-bottom:12px\">\n<tr><td style=\"color:${MUTED};padding:2px 14px 2px 0\">${esc(d.stretch)}</td><td style=\"font-family:'IBM Plex Mono',monospace\">${esc(d.value)} ${chip('off_plan')}</td></tr>\n<tr><td style=\"color:${MUTED};padding:2px 14px 2px 0\">The plan asks</td><td style=\"font-family:'IBM Plex Mono',monospace\">${esc(d.target)}</td></tr>\n<tr><td style=\"color:${MUTED};padding:2px 14px 2px 0\">Match so far</td><td style=\"font-family:'IBM Plex Mono',monospace\">${esc(d.match_value)}</td></tr>\n</table>\n<p style=\"margin:0 0 16px;color:#39503f\">${esc(d.what_to_check)}</p>\n${button(link, 'Open in the analysis room')}`;\n\nreturn [{ json: { to, subject, text, html: page('Off the plan', match, body), deviation_id: d.deviation_id, priority: d.priority } }];\n"
+      },
+      "id": "d-message",
+      "name": "Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.EMAIL_FROM }}",
+        "toEmail": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "both",
+        "text": "={{ $json.text }}",
+        "html": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "d-email",
+      "name": "Email the staff",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        500,
+        -40
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "brightonSmtp",
+          "name": "Brighton analysis SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "d-slack-if-c",
+              "leftValue": "={{ $env.SLACK_WEBHOOK_URL }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d-slack-if",
+      "name": "Slack set?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        500,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: '*' + $json.subject + '*\\n' + $json.text }) }}",
+        "options": {}
+      },
+      "id": "d-slack",
+      "name": "Post to Slack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        100
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "d-telegram-if-c",
+              "leftValue": "={{ $env.TELEGRAM_BOT_TOKEN }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d-telegram-if",
+      "name": "Telegram set?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        500,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: $json.subject + '\\n\\n' + $json.text }) }}",
+        "options": {}
+      },
+      "id": "d-telegram",
+      "name": "Send to Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        260
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "width": 560,
+        "height": 220,
+        "content": "## Brighton · off the plan\nThe ingest service posts every deviation from the game plan that opens during a match to `POST /webhook/brighton/deviation` (with `X-Notify-Token`). Those whose priority is in `NOTIFY_PRIORITY` (default `high`: the plan's key instructions) are emailed to `STAFF_EMAIL_TO`, and posted to Slack and Telegram when those are set (the bench's phones), with a link that opens the deviation in the analysis room.\n\nThe code lives in `ai/config/n8n/src/`; settings are in `ai/.env`."
+      },
+      "id": "d-note",
+      "name": "About",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -260
+      ]
+    }
+  ],
+  "connections": {
+    "Deviation": {
+      "main": [
+        [
+          {
+            "node": "Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack set?": {
+      "main": [
+        [
+          {
+            "node": "Post to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram set?": {
+      "main": [
+        [
+          {
+            "node": "Send to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message": {
+      "main": [
+        [
+          {
+            "node": "Email the staff",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Slack set?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram set?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "tags": [],
+  "description": "Tells the staff when a key target of the game plan goes off plan during a match.",
+  "versionId": "755005ce-5312-576e-bb8f-78d629b5e22b"
+}

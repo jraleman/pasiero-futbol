@@ -1,0 +1,4 @@
+# CPU builds of torch and torchvision come from PyTorch's own index (Dockerfile)
+ultralytics==8.4.178
+opencv-python-headless>=4.10,<6
+numpy>=1.26,<3

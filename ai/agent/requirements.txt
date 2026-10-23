@@ -1,0 +1,5 @@
+# The team of agents (team.py): Microsoft Agent Framework, its OpenAI and Azure OpenAI client, and Entra ID sign-in
+# (a managed identity on Azure). agent.py itself needs nothing beyond the standard library.
+agent-framework-core==1.23.0
+agent-framework-openai==1.17.0
+azure-identity==1.26.0

@@ -1,0 +1,2239 @@
+{
+  "uid": "brighton-match-analysis",
+  "title": "Match analysis",
+  "tags": [
+    "brighton",
+    "p4n4"
+  ],
+  "description": "Brighton's match analysis: team data, shape, set pieces and running every 5 minutes against the staff's game plan, the season, and the club's match device.",
+  "timezone": "browser",
+  "editable": false,
+  "graphTooltip": 1,
+  "refresh": "10s",
+  "schemaVersion": 41,
+  "time": {
+    "from": "now-60d",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "site",
+        "label": "Club",
+        "type": "custom",
+        "query": "brighton",
+        "current": {
+          "text": "brighton",
+          "value": "brighton"
+        },
+        "options": [
+          {
+            "text": "brighton",
+            "value": "brighton",
+            "selected": true
+          }
+        ],
+        "hide": 2
+      },
+      {
+        "name": "match",
+        "label": "Match",
+        "type": "query",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "influxdb-telemetry"
+        },
+        "query": "import \"influxdata/influxdb/schema\"\nfrom(bucket: v.defaultBucket)\n  |> range(start: -400d)\n  |> filter(fn: (r) => r._measurement == \"team_fixture\" and r._field == \"status\" and r.site_id == \"${site}\")\n  |> last()\n  |> group()\n  |> sort(columns: [\"_time\"], desc: true)\n  |> keep(columns: [\"match_id\"])",
+        "definition": "import \"influxdata/influxdb/schema\"\nfrom(bucket: v.defaultBucket)\n  |> range(start: -400d)\n  |> filter(fn: (r) => r._measurement == \"team_fixture\" and r._field == \"status\" and r.site_id == \"${site}\")\n  |> last()\n  |> group()\n  |> sort(columns: [\"_time\"], desc: true)\n  |> keep(columns: [\"match_id\"])",
+        "refresh": 2,
+        "sort": 0,
+        "includeAll": false,
+        "multi": false,
+        "current": {}
+      },
+      {
+        "name": "node",
+        "label": "Device",
+        "type": "query",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "influxdb-telemetry"
+        },
+        "query": "from(bucket: v.defaultBucket)\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"team_node\" and r._field == \"up\" and r.site_id == \"${site}\")\n  |> keep(columns: [\"device\"])\n  |> distinct(column: \"device\")",
+        "definition": "from(bucket: v.defaultBucket)\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"team_node\" and r._field == \"up\" and r.site_id == \"${site}\")\n  |> keep(columns: [\"device\"])\n  |> distinct(column: \"device\")",
+        "refresh": 2,
+        "sort": 0,
+        "includeAll": false,
+        "multi": false,
+        "current": {}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "",
+      "transparent": true,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 3
+      },
+      "options": {
+        "mode": "html",
+        "content": "<style>\n.ma-head{--ma-accent:#04F5FF;--ma-line:color-mix(in srgb,currentColor 14%,transparent);position:relative;overflow:hidden;\n  display:flex;justify-content:space-between;align-items:center;gap:24px;height:100%;padding:5px 20px 0 22px;box-sizing:border-box;\n  border:1px solid var(--ma-line);border-radius:6px;background:linear-gradient(100deg,color-mix(in srgb,#37003c 55%,transparent),transparent 66%)}\n.theme-light .ma-head{--ma-accent:#37003C}\n/* The league's gradient along the top */\n.ma-head::before{content:\"\";position:absolute;inset:0 0 auto 0;height:5px;background:linear-gradient(90deg,#04f5ff,#00ff85 32%,#e90052 68%,#963cff)}\n.ma-id{display:flex;align-items:center;gap:18px;min-width:0}\n.ma-id img{width:44px;height:44px;object-fit:contain}\n.ma-sep{align-self:stretch;width:1px;margin:16px 0;background:var(--ma-line)}\n.ma-eyebrow{font-size:12px;font-weight:600;color:var(--ma-accent);letter-spacing:.06em;text-transform:uppercase}\n.ma-title{font-size:21px;font-weight:600;line-height:1.3}\n.ma-sub{font-size:12.5px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.ma-chips{display:flex;gap:8px;flex-shrink:0}\n.ma-chip{display:inline-flex;gap:7px;padding:5px 12px;border:1px solid var(--ma-line);border-radius:999px;font-size:12px;white-space:nowrap}\n.ma-chip span{opacity:.75}.ma-chip b{font-weight:500;font-family:ui-monospace,monospace;font-size:11.5px}\n.ma-sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}\n@media (max-width:1000px){.ma-sub,.ma-legend{display:none}}\n</style>\n<div class=\"ma-head\">\n  <div class=\"ma-id\">\n    <img src=\"./public/img/grafana_icon.svg\" alt=\"Premier League\">\n    <span class=\"ma-sep\"></span>\n    <div style=\"min-width:0\">\n      <div class=\"ma-eyebrow\">Match Intelligence</div>\n      <div class=\"ma-title\">${match}</div>\n      <div class=\"ma-sub\">Measured by the club's match device every 5 minutes, against the staff's game plan</div>\n    </div>\n  </div>\n  <div class=\"ma-chips\">\n    <div class=\"ma-chip ma-legend\"><span><i class=\"ma-sw\" style=\"background:#3987e5\"></i>Brighton <i class=\"ma-sw\" style=\"background:#199e70;margin-left:8px\"></i>Opponent</span></div>\n    <div class=\"ma-chip\"><span>Device</span><b>${node}</b></div>\n  </div>\n</div>"
+      }
+    },
+    {
+      "id": 900,
+      "type": "row",
+      "title": "The match · ${match}",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "On the plan",
+      "description": "Of the plan's targets checked every 5 minutes, the share on plan.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -400d, stop: now())\n  |> filter(fn: (r) => r._measurement == \"plan_check\" and r._field == \"on_plan\" and r.site_id == \"${site}\" and r.match_id == \"${match}\" and r.status != \"no_data\")\n  |> group()\n  |> mean()\n  |> map(fn: (r) => ({_value: r._value * 100.0}))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 0,
+          "noValue": "–",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#0ca30c"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Possession",
+      "description": "Ours, over the match's windows.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 4,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -400d, stop: now())\n  |> filter(fn: (r) => r._measurement == \"team_window\" and r._field == \"possession_pct\" and r.site_id == \"${site}\" and r.match_id == \"${match}\" and r.ours == \"true\")\n  |> group()\n  |> mean()\n  |> keep(columns: [\"_value\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 0,
+          "noValue": "–",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#3987e5"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "xG for",
+      "description": "Our expected goals.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 4,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -400d, stop: now())\n  |> filter(fn: (r) => r._measurement == \"team_window\" and r._field == \"xg\" and r.site_id == \"${site}\" and r.match_id == \"${match}\" and r.ours == \"true\")\n  |> group()\n  |> sum()\n  |> keep(columns: [\"_value\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "noValue": "–",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#3987e5"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "xG against",
+      "description": "Theirs.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -400d, stop: now())\n  |> filter(fn: (r) => r._measurement == \"team_window\" and r._field == \"xg\" and r.site_id == \"${site}\" and r.match_id == \"${match}\" and r.ours == \"false\")\n  |> group()\n  |> sum()\n  |> keep(columns: [\"_value\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "noValue": "–",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#199e70"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "PPDA",
+      "description": "Our press: their passes in their own 60% per defensive action of ours there (window average). Lower is harder.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 4,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -400d, stop: now())\n  |> filter(fn: (r) => r._measurement == \"team_window\" and r._field == \"ppda\" and r.site_id == \"${site}\" and r.match_id == \"${match}\" and r.ours == \"true\")\n  |> group()\n  |> mean()\n  |> keep(columns: [\"_value\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 1,
+          "noValue": "–",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#3987e5"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Line height",
+      "description": "Our back four's average distance from our goal out of possession, in metres.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 4,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -400d, stop: now())\n  |> filter(fn: (r) => r._measurement == \"team_window\" and r._field == \"line_height_m\" and r.site_id == \"${site}\" and r.match_id == \"${match}\" and r.ours == \"true\")\n  |> group()\n  |> mean()\n  |> keep(columns: [\"_value\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "lengthm",
+          "decimals": 1,
+          "noValue": "–",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#3987e5"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 8,
+      "type": "barchart",
+      "title": "xG per 5 minutes",
+      "description": "Each side's expected goals in every 5 minutes of the match: who was creating, and when.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -400d, stop: now())\n  |> filter(fn: (r) => r._measurement == \"team_window\" and r.site_id == \"${site}\" and r.match_id == \"${match}\" and (r._field == \"xg\" or r._field == \"minute\"))\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({minute: string(v: int(v: r.minute)) + \"'\", order: r.minute, side: if r.ours == \"true\" then \"Brighton\" else \"Opponent\", _value: r.xg}))\n  |> group()\n  |> pivot(rowKey: [\"minute\", \"order\"], columnKey: [\"side\"], valueColumn: \"_value\")\n  |> sort(columns: [\"order\"])\n  |> drop(columns: [\"order\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "decimals": 2,
+          "custom": {
+            "fillOpacity": 90,
+            "lineWidth": 0
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Brighton"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#3987e5"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Opponent"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#199e70"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "xField": "minute",
+        "orientation": "vertical",
+        "barWidth": 0.85,
+        "groupWidth": 0.8,
+        "showValue": "never",
+        "stacking": "none",
+        "xTickLabelSpacing": 0,
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "The game plan every 5 minutes",
+      "description": "Each target of the plan in each 5-minute window: ✓ on plan, ~ drifting (within the tolerance), ✕ off plan. A deviation opens when three windows in a row (15 minutes) are off plan together.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -400d, stop: now())\n  |> filter(fn: (r) => r._measurement == \"plan_check\" and r._field == \"minute\" and r.site_id == \"${site}\" and r.match_id == \"${match}\")\n  |> map(fn: (r) => ({target: if r.metric == \"possession_pct\" then \"Possession\" else if r.metric == \"pass_accuracy_pct\" then \"Pass completion\" else if r.metric == \"ppda\" then \"PPDA\" else if r.metric == \"line_height_m\" then \"Line height\" else if r.metric == \"width_m\" then \"Width\" else if r.metric == \"length_m\" then \"Team length\" else if r.metric == \"field_tilt_pct\" then \"Field tilt\" else if r.metric == \"counterpress_pct\" then \"Counter-press\" else if r.metric == \"high_regains_p90\" then \"High regains /90\" else if r.metric == \"entries_left_pct\" then \"Entries left\" else if r.metric == \"entries_centre_pct\" then \"Entries centre\" else if r.metric == \"entries_right_pct\" then \"Entries right\" else if r.metric == \"build_up_short_pct\" then \"Short goal kicks\" else if r.metric == \"shots_conceded_p90\" then \"Shots conceded /90\" else if r.metric == \"xg_for_p90\" then \"xG /90\" else if r.metric == \"xg_against_p90\" then \"xG against /90\" else if r.metric == \"formation_in_possession\" then \"Shape in possession\" else if r.metric == \"formation_out_of_possession\" then \"Shape out of possession\" else if r.metric == \"set_piece_first_contact_pct\" then \"Set pieces: first contact\" else if r.metric == \"set_piece_defence_pct\" then \"Defending set pieces\" else if r.metric == \"set_piece_xg_p90\" then \"Set-piece xG /90\" else if r.metric == \"set_piece_xg_against_p90\" then \"Set-piece xG against /90\" else if r.metric == \"hsr_p90\" then \"High-speed running /90\" else if r.metric == \"sprints_p90\" then \"Sprints /90\" else if r.metric == \"load_drop_pct\" then \"Running drop\" else r.metric, minute: string(v: int(v: r._value)) + \"'\", order: r._value, status: r.status}))\n  |> group()\n  |> sort(columns: [\"order\"])\n  |> pivot(rowKey: [\"target\"], columnKey: [\"minute\"], valueColumn: \"status\")"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "on_plan": {
+                  "text": "✓",
+                  "color": "#0ca30c",
+                  "index": 0
+                },
+                "drifting": {
+                  "text": "~",
+                  "color": "#fab219",
+                  "index": 1
+                },
+                "off_plan": {
+                  "text": "✕",
+                  "color": "#d03b3b",
+                  "index": 2
+                },
+                "no_data": {
+                  "text": "–",
+                  "color": "#6c7d70",
+                  "index": 3
+                }
+              }
+            }
+          ],
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "color-background",
+              "mode": "basic"
+            },
+            "width": 46
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "target"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Target"
+              },
+              {
+                "id": "custom.width",
+                "value": 190
+              },
+              {
+                "id": "custom.align",
+                "value": "left"
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "trend",
+      "title": "Defensive line height",
+      "description": "Each side's back four out of possession, every 5 minutes (m from its own goal).",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -400d, stop: now())\n  |> filter(fn: (r) => r._measurement == \"team_window\" and r.site_id == \"${site}\" and r.match_id == \"${match}\" and (r._field == \"line_height_m\" or r._field == \"minute\"))\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({minute: r.minute, side: if r.ours == \"true\" then \"Brighton\" else \"Opponent\", _value: float(v: r.line_height_m)}))\n  |> group()\n  |> pivot(rowKey: [\"minute\"], columnKey: [\"side\"], valueColumn: \"_value\")\n  |> sort(columns: [\"minute\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "lengthm",
+          "custom": {
+            "lineWidth": 2,
+            "pointSize": 7,
+            "showPoints": "always",
+            "spanNulls": true,
+            "axisBorderShow": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Brighton"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#3987e5"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Opponent"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#199e70"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "minute"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "displayName",
+                "value": "Minute"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "xField": "minute",
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "trend",
+      "title": "PPDA",
+      "description": "Each side's press every 5 minutes. Lower is harder.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 16,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -400d, stop: now())\n  |> filter(fn: (r) => r._measurement == \"team_window\" and r.site_id == \"${site}\" and r.match_id == \"${match}\" and (r._field == \"ppda\" or r._field == \"minute\"))\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({minute: r.minute, side: if r.ours == \"true\" then \"Brighton\" else \"Opponent\", _value: float(v: r.ppda)}))\n  |> group()\n  |> pivot(rowKey: [\"minute\"], columnKey: [\"side\"], valueColumn: \"_value\")\n  |> sort(columns: [\"minute\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "lineWidth": 2,
+            "pointSize": 7,
+            "showPoints": "always",
+            "spanNulls": true,
+            "axisBorderShow": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Brighton"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#3987e5"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Opponent"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#199e70"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "minute"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "displayName",
+                "value": "Minute"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "xField": "minute",
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "trend",
+      "title": "Width in possession",
+      "description": "Each side's width every 5 minutes, in metres.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 16,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -400d, stop: now())\n  |> filter(fn: (r) => r._measurement == \"team_window\" and r.site_id == \"${site}\" and r.match_id == \"${match}\" and (r._field == \"width_m\" or r._field == \"minute\"))\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({minute: r.minute, side: if r.ours == \"true\" then \"Brighton\" else \"Opponent\", _value: float(v: r.width_m)}))\n  |> group()\n  |> pivot(rowKey: [\"minute\"], columnKey: [\"side\"], valueColumn: \"_value\")\n  |> sort(columns: [\"minute\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "lengthm",
+          "custom": {
+            "lineWidth": 2,
+            "pointSize": 7,
+            "showPoints": "always",
+            "spanNulls": true,
+            "axisBorderShow": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Brighton"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#3987e5"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Opponent"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#199e70"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "minute"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "displayName",
+                "value": "Minute"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "xField": "minute",
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "table",
+      "title": "Deviations",
+      "description": "Every deviation from the plan in the match, with its minute. Key targets are high priority. The analyst's calls are in the analysis room.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -400d, stop: now())\n  |> filter(fn: (r) => r._measurement == \"plan_deviation\" and r._field == \"minute\" and r.site_id == \"${site}\" and r.match_id == \"${match}\")\n  |> map(fn: (r) => ({_time: r._time, minute: string(v: int(v: r._value)) + \"'\", target: if r.metric == \"possession_pct\" then \"Possession\" else if r.metric == \"pass_accuracy_pct\" then \"Pass completion\" else if r.metric == \"ppda\" then \"PPDA\" else if r.metric == \"line_height_m\" then \"Line height\" else if r.metric == \"width_m\" then \"Width\" else if r.metric == \"length_m\" then \"Team length\" else if r.metric == \"field_tilt_pct\" then \"Field tilt\" else if r.metric == \"counterpress_pct\" then \"Counter-press\" else if r.metric == \"high_regains_p90\" then \"High regains /90\" else if r.metric == \"entries_left_pct\" then \"Entries left\" else if r.metric == \"entries_centre_pct\" then \"Entries centre\" else if r.metric == \"entries_right_pct\" then \"Entries right\" else if r.metric == \"build_up_short_pct\" then \"Short goal kicks\" else if r.metric == \"shots_conceded_p90\" then \"Shots conceded /90\" else if r.metric == \"xg_for_p90\" then \"xG /90\" else if r.metric == \"xg_against_p90\" then \"xG against /90\" else if r.metric == \"formation_in_possession\" then \"Shape in possession\" else if r.metric == \"formation_out_of_possession\" then \"Shape out of possession\" else if r.metric == \"set_piece_first_contact_pct\" then \"Set pieces: first contact\" else if r.metric == \"set_piece_defence_pct\" then \"Defending set pieces\" else if r.metric == \"set_piece_xg_p90\" then \"Set-piece xG /90\" else if r.metric == \"set_piece_xg_against_p90\" then \"Set-piece xG against /90\" else if r.metric == \"hsr_p90\" then \"High-speed running /90\" else if r.metric == \"sprints_p90\" then \"Sprints /90\" else if r.metric == \"load_drop_pct\" then \"Running drop\" else r.metric, priority: r.priority}))\n  |> group()\n  |> sort(columns: [\"_time\"])\n  |> drop(columns: [\"_time\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "priority"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "high": {
+                        "text": "★ key",
+                        "color": "#d03b3b",
+                        "index": 0
+                      },
+                      "normal": {
+                        "text": "normal",
+                        "color": "#fab219",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "barchart",
+      "title": "Technical plays",
+      "description": "What the device found, per type and side.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -400d, stop: now())\n  |> filter(fn: (r) => r._measurement == \"team_play\" and r._field == \"count\" and r.site_id == \"${site}\" and r.match_id == \"${match}\")\n  |> map(fn: (r) => ({type: if r.type == \"goal\" then \"Goals\" else if r.type == \"shot\" then \"Shots (xG ≥ 0.08)\" else if r.type == \"save\" then \"Saves\" else if r.type == \"set_piece\" then \"Set pieces\" else if r.type == \"high_regain\" then \"High regains\" else if r.type == \"counter_attack\" then \"Counter-attacks\" else if r.type == \"build_up\" then \"Build-ups\" else if r.type == \"press_broken\" then \"Presses played through\" else if r.type == \"foul\" then \"Fouls won\" else if r.type == \"formation_change\" then \"Formation changes\" else r.type, side: if r.ours == \"true\" then \"Brighton\" else \"Opponent\", _value: r._value}))\n  |> group(columns: [\"type\", \"side\"])\n  |> sum()\n  |> group()\n  |> pivot(rowKey: [\"type\"], columnKey: [\"side\"], valueColumn: \"_value\")"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "decimals": 0,
+          "custom": {
+            "fillOpacity": 90,
+            "lineWidth": 0
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Brighton"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#3987e5"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Opponent"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#199e70"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "xField": "type",
+        "orientation": "horizontal",
+        "barWidth": 0.8,
+        "groupWidth": 0.75,
+        "showValue": "auto",
+        "stacking": "none",
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "stat",
+      "title": "Set pieces",
+      "description": "Our deliveries into the box: corners, free kicks within 35 m, long throws.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 3,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -400d, stop: now())\n  |> filter(fn: (r) => r._measurement == \"team_window\" and r._field == \"set_pieces\" and r.site_id == \"${site}\" and r.match_id == \"${match}\" and r.ours == \"true\")\n  |> group()\n  |> sum()\n  |> keep(columns: [\"_value\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "–",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#3987e5"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 16,
+      "type": "stat",
+      "title": "Set-piece xG",
+      "description": "The expected goals of our shots in the 8 s after a set piece.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 3,
+        "y": 32,
+        "w": 3,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -400d, stop: now())\n  |> filter(fn: (r) => r._measurement == \"team_window\" and r._field == \"set_piece_xg\" and r.site_id == \"${site}\" and r.match_id == \"${match}\" and r.ours == \"true\")\n  |> group()\n  |> sum()\n  |> keep(columns: [\"_value\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "noValue": "–",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#3987e5"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 17,
+      "type": "stat",
+      "title": "Their set pieces",
+      "description": "Their deliveries into our box.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 32,
+        "w": 3,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -400d, stop: now())\n  |> filter(fn: (r) => r._measurement == \"team_window\" and r._field == \"set_pieces\" and r.site_id == \"${site}\" and r.match_id == \"${match}\" and r.ours == \"false\")\n  |> group()\n  |> sum()\n  |> keep(columns: [\"_value\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "–",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#199e70"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 18,
+      "type": "stat",
+      "title": "Set-piece xG against",
+      "description": "Theirs, after their set pieces.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 9,
+        "y": 32,
+        "w": 3,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -400d, stop: now())\n  |> filter(fn: (r) => r._measurement == \"team_window\" and r._field == \"set_piece_xg\" and r.site_id == \"${site}\" and r.match_id == \"${match}\" and r.ours == \"false\")\n  |> group()\n  |> sum()\n  |> keep(columns: [\"_value\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "noValue": "–",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#199e70"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 19,
+      "type": "trend",
+      "title": "High-speed running",
+      "description": "Each side's running over 19.8 km/h, every 5 minutes, in metres.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 32,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -400d, stop: now())\n  |> filter(fn: (r) => r._measurement == \"team_window\" and r.site_id == \"${site}\" and r.match_id == \"${match}\" and (r._field == \"hsr_m\" or r._field == \"minute\"))\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({minute: r.minute, side: if r.ours == \"true\" then \"Brighton\" else \"Opponent\", _value: float(v: r.hsr_m)}))\n  |> group()\n  |> pivot(rowKey: [\"minute\"], columnKey: [\"side\"], valueColumn: \"_value\")\n  |> sort(columns: [\"minute\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "lengthm",
+          "custom": {
+            "lineWidth": 2,
+            "pointSize": 7,
+            "showPoints": "always",
+            "spanNulls": true,
+            "axisBorderShow": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Brighton"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#3987e5"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Opponent"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#199e70"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "minute"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "displayName",
+                "value": "Minute"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "xField": "minute",
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 20,
+      "type": "table",
+      "title": "Our players' running",
+      "description": "Every player of ours over the match: distance, ground covered a minute, running over 19.8 km/h, sprints over 25.2 km/h, top speed.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 36,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -400d, stop: now())\n  |> filter(fn: (r) => r._measurement == \"player_run\" and r.site_id == \"${site}\" and r.match_id == \"${match}\" and r.ours == \"true\")\n  |> filter(fn: (r) => r._field != \"minute\")\n  |> group(columns: [\"number\", \"_field\"])\n  |> reduce(identity: {v: 0.0}, fn: (r, accumulator) => ({v: if r._field == \"top_speed_ms\" then (if float(v: r._value) > accumulator.v then float(v: r._value) else accumulator.v) else accumulator.v + float(v: r._value)}))\n  |> group()\n  |> pivot(rowKey: [\"number\"], columnKey: [\"_field\"], valueColumn: \"v\")\n  |> map(fn: (r) => ({Player: \"#\" + r.number, Minutes: r.seconds / 60.0, km: r.distance_m / 1000.0,\n      \"m a minute\": r.distance_m / r.seconds * 60.0, \"High-speed m\": r.hsr_m, Sprints: r.sprints,\n      \"Top km/h\": r.top_speed_ms * 3.6}))\n  |> sort(columns: [\"Minutes\"], desc: true)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Minutes"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "km"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "m a minute"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "High-speed m"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Sprints"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Top km/h"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 901,
+      "type": "row",
+      "title": "The season (the selected period)",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 45,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 21,
+      "type": "barchart",
+      "title": "xG per match",
+      "description": "Ours and theirs, every match in the period.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 46,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"team_window\" and r._field == \"xg\" and r.site_id == \"${site}\")\n  |> group(columns: [\"match_id\", \"ours\"])\n  |> sum()\n  |> map(fn: (r) => ({match: r.match_id, side: if r.ours == \"true\" then \"Brighton\" else \"Opponent\", _value: float(v: r._value)}))\n  |> group()\n  |> pivot(rowKey: [\"match\"], columnKey: [\"side\"], valueColumn: \"_value\")\n  |> sort(columns: [\"match\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "decimals": 2,
+          "custom": {
+            "fillOpacity": 90,
+            "lineWidth": 0
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Brighton"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#3987e5"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Opponent"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#199e70"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "xField": "match",
+        "orientation": "vertical",
+        "barWidth": 0.85,
+        "groupWidth": 0.75,
+        "showValue": "never",
+        "stacking": "none",
+        "xTickLabelRotation": -30,
+        "xTickLabelMaxLength": 22,
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 22,
+      "type": "barchart",
+      "title": "On the plan, per match",
+      "description": "Of the targets checked every 5 minutes, the share that were on plan, in each match.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 46,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"plan_check\" and r._field == \"on_plan\" and r.site_id == \"${site}\" and r.status != \"no_data\")\n  |> group(columns: [\"match_id\"])\n  |> mean()\n  |> map(fn: (r) => ({match: r.match_id, \"On plan\": r._value * 100.0}))\n  |> group()\n  |> sort(columns: [\"match\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 100,
+          "unit": "percent",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#0ca30c"
+          },
+          "custom": {
+            "fillOpacity": 90,
+            "lineWidth": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "xField": "match",
+        "orientation": "vertical",
+        "barWidth": 0.7,
+        "showValue": "auto",
+        "stacking": "none",
+        "xTickLabelRotation": -30,
+        "xTickLabelMaxLength": 22,
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 23,
+      "type": "barchart",
+      "title": "Set-piece xG per match",
+      "description": "Ours and theirs, after set pieces into the box.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 55,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"team_window\" and r._field == \"set_piece_xg\" and r.site_id == \"${site}\")\n  |> group(columns: [\"match_id\", \"ours\"])\n  |> sum()\n  |> map(fn: (r) => ({match: r.match_id, side: if r.ours == \"true\" then \"Brighton\" else \"Opponent\", _value: float(v: r._value)}))\n  |> group()\n  |> pivot(rowKey: [\"match\"], columnKey: [\"side\"], valueColumn: \"_value\")\n  |> sort(columns: [\"match\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "decimals": 2,
+          "custom": {
+            "fillOpacity": 90,
+            "lineWidth": 0
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Brighton"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#3987e5"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Opponent"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#199e70"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "xField": "match",
+        "orientation": "vertical",
+        "barWidth": 0.85,
+        "groupWidth": 0.75,
+        "showValue": "never",
+        "stacking": "none",
+        "xTickLabelRotation": -30,
+        "xTickLabelMaxLength": 22,
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 24,
+      "type": "barchart",
+      "title": "High-speed running per match",
+      "description": "Each side's running over 19.8 km/h, in metres.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 55,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"team_window\" and r._field == \"hsr_m\" and r.site_id == \"${site}\")\n  |> group(columns: [\"match_id\", \"ours\"])\n  |> sum()\n  |> map(fn: (r) => ({match: r.match_id, side: if r.ours == \"true\" then \"Brighton\" else \"Opponent\", _value: float(v: r._value)}))\n  |> group()\n  |> pivot(rowKey: [\"match\"], columnKey: [\"side\"], valueColumn: \"_value\")\n  |> sort(columns: [\"match\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "decimals": 0,
+          "custom": {
+            "fillOpacity": 90,
+            "lineWidth": 0
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Brighton"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#3987e5"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Opponent"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#199e70"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "xField": "match",
+        "orientation": "vertical",
+        "barWidth": 0.85,
+        "groupWidth": 0.75,
+        "showValue": "never",
+        "stacking": "none",
+        "xTickLabelRotation": -30,
+        "xTickLabelMaxLength": 22,
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 25,
+      "type": "barchart",
+      "title": "PPDA per match",
+      "description": "The average of each match's windows. Lower is a harder press.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 64,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"team_window\" and r._field == \"ppda\" and r.site_id == \"${site}\")\n  |> group(columns: [\"match_id\", \"ours\"])\n  |> mean()\n  |> map(fn: (r) => ({match: r.match_id, side: if r.ours == \"true\" then \"Brighton\" else \"Opponent\", _value: float(v: r._value)}))\n  |> group()\n  |> pivot(rowKey: [\"match\"], columnKey: [\"side\"], valueColumn: \"_value\")\n  |> sort(columns: [\"match\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "decimals": 1,
+          "custom": {
+            "fillOpacity": 90,
+            "lineWidth": 0
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Brighton"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#3987e5"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Opponent"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#199e70"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "xField": "match",
+        "orientation": "vertical",
+        "barWidth": 0.85,
+        "groupWidth": 0.75,
+        "showValue": "never",
+        "stacking": "none",
+        "xTickLabelRotation": -30,
+        "xTickLabelMaxLength": 22,
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 26,
+      "type": "barchart",
+      "title": "Which targets slip",
+      "description": "Deviations per target over the period: where the team most often leaves the plan.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 64,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"plan_deviation\" and r._field == \"count\" and r.site_id == \"${site}\")\n  |> map(fn: (r) => ({target: if r.metric == \"possession_pct\" then \"Possession\" else if r.metric == \"pass_accuracy_pct\" then \"Pass completion\" else if r.metric == \"ppda\" then \"PPDA\" else if r.metric == \"line_height_m\" then \"Line height\" else if r.metric == \"width_m\" then \"Width\" else if r.metric == \"length_m\" then \"Team length\" else if r.metric == \"field_tilt_pct\" then \"Field tilt\" else if r.metric == \"counterpress_pct\" then \"Counter-press\" else if r.metric == \"high_regains_p90\" then \"High regains /90\" else if r.metric == \"entries_left_pct\" then \"Entries left\" else if r.metric == \"entries_centre_pct\" then \"Entries centre\" else if r.metric == \"entries_right_pct\" then \"Entries right\" else if r.metric == \"build_up_short_pct\" then \"Short goal kicks\" else if r.metric == \"shots_conceded_p90\" then \"Shots conceded /90\" else if r.metric == \"xg_for_p90\" then \"xG /90\" else if r.metric == \"xg_against_p90\" then \"xG against /90\" else if r.metric == \"formation_in_possession\" then \"Shape in possession\" else if r.metric == \"formation_out_of_possession\" then \"Shape out of possession\" else if r.metric == \"set_piece_first_contact_pct\" then \"Set pieces: first contact\" else if r.metric == \"set_piece_defence_pct\" then \"Defending set pieces\" else if r.metric == \"set_piece_xg_p90\" then \"Set-piece xG /90\" else if r.metric == \"set_piece_xg_against_p90\" then \"Set-piece xG against /90\" else if r.metric == \"hsr_p90\" then \"High-speed running /90\" else if r.metric == \"sprints_p90\" then \"Sprints /90\" else if r.metric == \"load_drop_pct\" then \"Running drop\" else r.metric, _value: r._value}))\n  |> group(columns: [\"target\"])\n  |> sum()\n  |> group()\n  |> sort(columns: [\"_value\"], desc: true)\n  |> rename(columns: {_value: \"Deviations\"})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#fab219"
+          },
+          "custom": {
+            "fillOpacity": 90,
+            "lineWidth": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "xField": "target",
+        "orientation": "horizontal",
+        "barWidth": 0.7,
+        "showValue": "auto",
+        "stacking": "none",
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 902,
+      "type": "row",
+      "title": "The club's match device",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 73,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 27,
+      "type": "stat",
+      "title": "Status",
+      "description": "Online: a heartbeat in the last 90 s, status healthy.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 74,
+        "w": 4,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -1d)\n  |> filter(fn: (r) => r._measurement == \"team_node\" and r._field == \"up\" and r.device == \"${node}\")\n  |> last()\n  |> map(fn: (r) => ({_value: if uint(v: now()) - uint(v: r._time) > uint(v: 90000000000) then 2 else if r._value == 1 then 0 else 1}))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "no signal",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "online",
+                  "color": "#0ca30c",
+                  "index": 0
+                },
+                "1": {
+                  "text": "degraded",
+                  "color": "#fab219",
+                  "index": 1
+                },
+                "2": {
+                  "text": "no signal",
+                  "color": "#d03b3b",
+                  "index": 2
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 28,
+      "type": "stat",
+      "title": "Last heartbeat",
+      "description": "When the device last reported, in the last day.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 80,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: -1d)\n  |> filter(fn: (r) => r._measurement == \"team_node\" and r._field == \"up\" and r.device == \"${node}\")\n  |> last()\n  |> map(fn: (r) => ({_value: float(v: uint(v: r._time)) / 1000000.0}))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dateTimeFromNow",
+          "decimals": 1,
+          "noValue": "–",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 29,
+      "type": "timeseries",
+      "title": "Temperature",
+      "description": "CPU and GPU.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 74,
+        "w": 7,
+        "h": 11
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"sensor_data\" and r.device == \"${node}\" and (r.sensor == \"temperature_cpu_c\" or r.sensor == \"temperature_gpu_c\"))\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({_time: r._time, _value: r._value, _field: r.sensor}))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 30,
+      "type": "timeseries",
+      "title": "Tracking",
+      "description": "Frames tracked per second, players tracked and the ball's visibility.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 11,
+        "y": 74,
+        "w": 7,
+        "h": 11
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"sensor_data\" and r.device == \"${node}\" and (r.sensor == \"tracking_fps\" or r.sensor == \"players_tracked\" or r.sensor == \"ball_visible_pct\"))\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({_time: r._time, _value: r._value, _field: r.sensor}))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 31,
+      "type": "timeseries",
+      "title": "Latency",
+      "description": "From the picture to the measurement, in milliseconds.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-telemetry"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 74,
+        "w": 6,
+        "h": 11
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-telemetry"
+          },
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"sensor_data\" and r.device == \"${node}\" and (r.sensor == \"latency_ms\"))\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({_time: r._time, _value: r._value, _field: r.sensor}))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    }
+  ]
+}

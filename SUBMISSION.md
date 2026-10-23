@@ -1,0 +1,82 @@
+# Hackathon submission: Premier League Match Intelligence
+
+How this project meets the hackathon's criteria ([CHALLENGE.md](CHALLENGE.md)), criterion by criterion, with where to see each one. The full description is in [README.md](README.md); the video's script is in [DEMO.md](DEMO.md).
+
+**Status:** ✓ covered · ◐ partly · ✗ not covered.
+
+## The pitch
+
+> **Match Intelligence turns synthetic football events into explainable match intelligence, checked against the game plan and told for every audience.** A match device measures every match every five minutes: the press, the shape, set pieces, pass quality, ball and shot speed, and every player's running. It checks each number against the staff's game plan, and when the plan slips it explains why, from when, and what the plan asked for. A team of AI agents built with **Microsoft Agent Framework** on **Azure OpenAI** works from those numbers alone. An orchestrator calls an analyst, a coach and a narrator. They answer the staff's questions, give the bench options rather than orders, and tell each match's story for a fan, a coach, an analyst or a broadcast's captions, in 14 languages, following one player if asked. It renders in a live analysis room, Grafana, the dashboard's Video tab and n8n's reports to the staff's phones. It falls back to a local model when there's no network.
+>
+> **The problem:** clubs, broadcasters and fans get the scoreline and a wall of stats, not the story. Match Intelligence surfaces the moments that matter, explains why they mattered, and makes every match feel made for every fan.
+>
+> **Microsoft and Azure:** Microsoft Agent Framework (multi-agent orchestration, agents as tools, function middleware), Azure OpenAI (the agents' model, by key or Microsoft Entra ID managed identity). In progress: the full stack hosted on an Azure VM, and a shirt-number model trained on Azure Machine Learning.
+
+## How to run it
+
+| | |
+|---|---|
+| **The full stack** | README, Quick start: `for layer in iot ai extras; do cp $layer/.env.example $layer/.env; done`, set `AZURE_OPENAI_ENDPOINT` and `AZURE_OPENAI_DEPLOYMENT` (and a key, or Entra ID) in `ai/.env`, then `p4n4 up` (or `docker compose up -d` in `iot`, `ai`, `extras`, in that order). Analysis room <http://localhost:8090/analysis/> (token `demo-read-token`), Grafana <http://localhost:3000>, emails <http://localhost:8025>. A live match is always playing, sped up ×3; `python3 iot/scripts/simulate.py --schedule` prints when it reaches each moment. |
+| **Hosted on Azure** | In progress (week 2): the same stack on an Azure VM, with a public HTTPS address. |
+| **Tests** | `python3 tests/test_analytics.py`, `tests/test_ingest.py`, `tests/test_local_tools.py`, `tests/test_team.py` (no Docker; the last needs `pip install -r ai/agent/requirements.txt`); `./tests/smoke.sh` (the whole stack, throwaway). |
+
+## (i) One pipeline with five stages
+
+| Stage | Status | What we have | Where |
+|---|---|---|---|
+| **(a) Ingest** synthetic events as they happen | ✓ | A match engine plays every match 5 times a second: every player and the ball, plus the on-ball events (passes with receiver and ball speed, carries, shots with their speed, tackles, interceptions, clearances, fouls, restarts with their routine), and the nearest defender closing the ball down. The device turns these into 5-minute windows and technical plays and posts them live (`"final": false` while a window is being played) through a versioned contract: fixtures (match metadata), windows, plays, heartbeat. | `iot/scripts/engine.py`, `simulate.py`, `iot/ingest/contract.py` |
+| **(b) Interpret** into statistics, patterns and context | ✓ | Possession, pass completion, pass quality (length, a 0–1 difficulty, hard passes completed), ball and shot speed, PPDA, field tilt, final-third entries by channel, shots and xG, turnovers and regains, set pieces (routine, delivery, first contact, xG), the shape in and out of possession (formation by optimal assignment, line height, width, length, the pass network) and every player's running. Plays: goals and how they came, shots, set pieces, high regains, counter-attacks, build-ups, presses played through, fouls won, formation changes. | `iot/scripts/analytics.py` |
+| **(c) Explain** why a moment matters | ✓ | Every 5 minutes is checked against the staff's game plan. A **deviation** says what was measured, against what target, over which stretch, what to check, and the plan's own instruction for it, then closes "back on plan at 60'". Every play has a sentence built only from its measured fields. The **narrator agent** explains why moments mattered: control against chaos, the press, the plan holding or slipping, the goals and how they came, a player's legs going. | `iot/ingest/plan.py`, `store.py`, `ai/agent/team.py` |
+| **(d) Render** on screen alongside the match | ✓ | The analysis room (scorecard, shape, timeline, set pieces, running, the Match story, a 2D replay of every play), Grafana, the dashboard's Video tab with the vision overlay, **broadcast captions** (3 to 5 lower-third lines under 80 characters, minute first). It's machine-readable and timed by match minute: MQTT `brighton/<site>/window`, `play/<type>`, `deviation`; the feed API; the recap API. | `iot/ingest/analysis/`, `iot/ingest/sinks.py` |
+| **(e) Personalize** for an analyst and a casual fan | ✓ | The same numbers, as different experiences. The **analyst** gets the calls, numbers, minutes and play ids. The **coaching staff** get options in football language. A **fan** gets the story in plain words, with each number explained the first time. **Broadcast** gets captions. Each comes in **14 languages**, or any language by name. **Player focus**: follow one of our players through the story (his part in the moments, his running). Views have their own starter questions and follow-ups. A favourite club works by data: the device is per club (`league.json` `club`), and every view takes our side. | The analysis room's Match story; `team.py` `recap`; `theme/brand.json` |
+
+## (ii) Real-time match intelligence
+
+| Feature | Status | What we have | Where |
+|---|---|---|---|
+| **Player identification**: name tagging | ✓ | Every shirt number of every club has a made-up name, seeded per club. The analysis room, sentences, deviations, reports, emails, the agents and the recaps all say "#7 Tomas Calloway". No real player is named. | `iot/scripts/squads.py` → `squads.json`, `Store.player_label` |
+| …with speed and distance indicators at thresholds | ✓ | **Milestones** tag a player the first time he passes 30 km/h, and at 5 and 10 km, on the 5 minutes he did it in. Every window carries each player's distance, high-speed running (> 19.8 km/h), sprints (> 25.2 km/h) and top speed. | `store.py` (`SPEED_TAG_KMH`, `DISTANCE_TAGS_KM`), the Running panel |
+| **Pass quality**: distance, accuracy, difficulty | ✓ | Pass completion, average pass length, a difficulty rating per pass (length, forward progress, pressure on the receiver, into the final third), and hard passes completed. | `analytics.py` (`pass_difficulty`), Team data |
+| **Speed metrics**: ball speed and shot speed | ✓ | Average pass speed and the fastest ball per window, and the fastest shot. Every goal and shot carries its speed. The device's ball-tracker reading is used when it sends one; otherwise the speed is measured from the ball's track. | `analytics.py` (`ball_speed`) |
+| **Auto-eventing** from a video feed | ◐ | The vision pipeline boxes every player and the ball on recorded footage, tells the teams apart by their kits (no training needed for a change of kit), reads shirt numbers with a vision-language model, and finds contacts and falls as plays. These go in through the same contract as `source: video`. It hasn't been run on footage yet: the real footage was dropped (synthetic data only), and our own kickabout is to be filmed. Pass and speed metrics from video need a fixed, calibrated camera. | `ai/vision/matchvision/`, `extras/scripts/clips.py` |
+
+## (iii) Narrative generation
+
+| | Status | What we have | Where |
+|---|---|---|---|
+| Key narratives, player-performance context, milestones, recaps | ✓ | The **narrator agent's recaps**: the match so far, the first half or the whole match, per audience and language, optionally following one player. They're written from facts gathered first by the same tools, so the narrator can't invent a moment. The half-time and match **reports** reach the staff by email (n8n) with the narrator's story first, then the plan target by target, the deviations and the analyst's notes, set pieces, the running, and the key plays. The printable report is a separate A4 page. A sentence for every play and every deviation. | `ai/agent/team.py` (`recap`), `ai/config/n8n/`, `report.html` |
+
+## (iv) Explainability
+
+| | Status | What we have | Where |
+|---|---|---|---|
+| Control vs chaos | ◐ | **Control:** possession, field tilt, pass completion, hard passes completed, final-third entries. **Chaos:** turnovers, regains, high regains, counter-press, presses played through, counter-attacks. These are shown together per 5 minutes and per part of the match, and the narrator explains the balance in words. There's no single "control vs chaos" index. | Team data, Grafana, the narrator |
+| Tactical pressure changes | ✓ | PPDA and the counter-press every 5 minutes against the plan. A deviation opens when the press fades. Formation changes are plays ("they change to a back three in possession"). | The scorecard, Deviations, the timeline |
+| Game rhythm | ◐ | Every metric every 5 minutes; xG per 5 minutes on the timeline; each player's metres a minute as bars, and the running drop as the legs go. There's no explicit tempo model. | The timeline, Running |
+
+## (v) Data innovation
+
+| | Status | What we have | Where |
+|---|---|---|---|
+| Synthetic football-realistic datasets | ✓ | The engine plays a whole season from seeds: tracking at 5 Hz for 22 players and the ball, on-ball events with ball-tracker readings, pressure, set-piece routines, substitutions and tiring legs, plus match metadata. It measures like football: about 600 passes a team at 80%, 10–25 shots, xG 1–2, PPDA 5–14, 8.5–12.5 km per outfield player. Every document is marked `"synthetic": true`. A scripted story (a goal after a high regain, the press fading, a set-piece goal, a player's legs going) makes the live match tell the same story every time, for demos and tests. Squads of made-up names. | `iot/scripts/engine.py`, `simulate.py`, `squads.py` |
+
+## (vi) Multi-language storytelling
+
+| | Status | What we have | Where |
+|---|---|---|---|
+| Natural-language outputs in several languages | ✓ | The narrator writes recaps and broadcast captions in 14 languages from the analysis room (English, Spanish, Portuguese, French, German, Italian, Dutch, Arabic (right to left), Japanese, Korean, Chinese, Hindi, Swahili, Turkish), or any language named through the API. The reports' story is in `RECAP_LANGUAGE`. The assistant answers in the language of the question. Fixed sentences (play summaries, deviation titles) stay in English. | `team.py`, the Match story, `ai/.env` |
+
+## Microsoft and Azure, in the code
+
+| Technology | What it does here | Where |
+|---|---|---|
+| **Microsoft Agent Framework** 1.23 | The team: four `Agent`s; the specialists given to the orchestrator as tools (`Agent.as_tool`); the ingest service's ten tools as `FunctionTool`s with their JSON schemas; a `FunctionMiddleware` that streams every tool call to the chat; streaming runs | `ai/agent/team.py`, `tests/test_team.py` |
+| **Azure OpenAI** | The agents' model (`OpenAIChatCompletionClient` on the Azure deployment), by key or Microsoft Entra ID (`DefaultAzureCredential`: a managed identity on Azure) | `team.py` `azure_client` |
+| Azure VM, Key Vault (in progress) | The stack hosted for judging, from Terraform | README, Next |
+| Azure Machine Learning (in progress) | A shirt-number model trained on synthetic crops, exported to ONNX | README, Next |
+
+## Notes
+
+- **Data.** Synthetic only. The real tracked match and the real footage the project once used were removed.
+- **Marks.** The Premier League's logo and the clubs' crests are Wikipedia's copies of their logos. The rules forbid third-party trademarks in the video without permission, so confirm with the organisers that the category allows them before uploading.
+- **Players.** The contract carries shirt numbers only; the names are made up. No player ratings.

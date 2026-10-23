@@ -1,0 +1,221 @@
+services:
+
+  # ====================================================================================
+  # brighton-match-analysis: ai layer (joins p4n4-net, which ../iot creates)
+  #   p4n4-dashboard Agent tab ──► agent :11434 ──┬──► Azure OpenAI: the team (orchestrator, analyst, coach, narrator)
+  #   analysis room's recaps ─────►               ├──► ollama (OLLAMA_MODEL, default gemma4:e2b): the offline fallback
+  #                                               ├──► ingest agent API (matches, plans, shapes, plays; read only)
+  #                                               └──► influxdb (the match device's health, read only)
+  #   ingest ──deviations, half time, full time──► n8n :5678 ──► email (SMTP_*: mailpit by default) · Slack · Telegram
+  #                                                  └──► ingest agent API (the reports)
+  # ====================================================================================
+
+  # ------------------------------------------------------------------------------------
+  # Match agent: the Ollama API, plus the match, plan and InfluxDB tools on /api/chat; a team of
+  # agents on Azure OpenAI when AZURE_OPENAI_* is set (Microsoft Agent Framework, team.py), and
+  # POST /api/recap (the narrator's recaps)
+  # ------------------------------------------------------------------------------------
+  agent:
+    # python:3.13-slim with the team's packages (agent/requirements.txt)
+    build: ./agent
+    image: brighton-agent:dev
+    # Ollama's name and port, so p4n4-api (P4N4_API_OLLAMA_URL), and through it
+    # p4n4-dashboard's Assistant tab, gets the tools with no configuration
+    container_name: p4n4-ollama
+    restart: ${RESTART_POLICY:-unless-stopped}
+    ports:
+      - "11434:11434"
+    command: ["python", "-u", "/p4n4/agent.py"]
+    user: "65534:65534"
+    read_only: true
+    environment:
+      OLLAMA_URL: http://ollama:11434
+      INFLUXDB_URL: http://influxdb:8086
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN:-p4n4-stack-token}
+      INFLUXDB_ORG: ${INFLUXDB_ORG:-ming}
+      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET:-raw_telemetry}
+      # The ingest service's agent API, for local_tools.py
+      INGEST_URL: http://ingest:8080
+      INGEST_READ_TOKEN: ${INGEST_READ_TOKEN:-}
+      # "-", not ":-": AGENT_THINK= (empty) means the model's default
+      AGENT_THINK: ${AGENT_THINK-false}
+      # Read the prompt and tools into this model at start (empty: don't)
+      AGENT_WARM_MODEL: ${OLLAMA_MODEL-gemma4:e2b}
+      OLLAMA_MODEL: ${OLLAMA_MODEL-gemma4:e2b}
+      # The team of agents (team.py): auto answers with it when Azure OpenAI is set, else on Ollama
+      AGENT_BACKEND: ${AGENT_BACKEND:-auto}
+      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT:-}
+      AZURE_OPENAI_DEPLOYMENT: ${AZURE_OPENAI_DEPLOYMENT:-}
+      # Empty: Microsoft Entra ID (the VM's managed identity on Azure)
+      AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY:-}
+      AZURE_OPENAI_API_VERSION: ${AZURE_OPENAI_API_VERSION:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    volumes:
+      # agent.py (the template's, plus four opt-in hooks: local_tools.py's own prompt, no sensor tools and
+      # follow-up questions; team.py's agents) and this project's local_tools.py and team.py
+      - ./agent:/p4n4:ro
+    depends_on:
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:11434/api/version', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - p4n4-net
+
+  # ------------------------------------------------------------------------------------
+  # Local LLM (Ollama). Reached through the agent; no host port of its own
+  # ------------------------------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:0.35.1
+    container_name: p4n4-ollama-server
+    restart: ${RESTART_POLICY:-unless-stopped}
+    # entrypoint.sh pulls OLLAMA_MODEL on first start, then runs the server
+    entrypoint: ["/bin/sh", "/p4n4/entrypoint.sh"]
+    environment:
+      OLLAMA_HOST: 0.0.0.0
+      # "-", not ":-": OLLAMA_MODEL= (empty) means pull nothing
+      OLLAMA_MODEL: ${OLLAMA_MODEL-gemma4:e2b}
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-30m}
+      OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-8192}
+    volumes:
+      - ./config/ollama/entrypoint.sh:/p4n4/entrypoint.sh:ro
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - p4n4-net
+
+  # ------------------------------------------------------------------------------------
+  # Workflow automation (n8n): key deviations to the staff during a match, the
+  # half-time report, the match report
+  # ------------------------------------------------------------------------------------
+  n8n:
+    image: n8nio/n8n:2.41.6
+    container_name: p4n4-n8n
+    restart: ${RESTART_POLICY:-unless-stopped}
+    ports:
+      - "5678:5678"
+    # entrypoint.sh provisions the owner, the SMTP credential and the workflows
+    entrypoint: ["tini", "--", "/bin/sh", "/p4n4/entrypoint.sh"]
+    environment:
+      N8N_HOST: ${N8N_HOST:-localhost}
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      N8N_WEBHOOK_URL: http://${N8N_HOST:-localhost}:5678/
+      # Plain http on a LAN: without this, logins only work on localhost
+      N8N_SECURE_COOKIE: "false"
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-change-me-32-char-encryption-key}
+      N8N_INSTANCE_OWNER_MANAGED_BY_ENV: "true"
+      N8N_INSTANCE_OWNER_EMAIL: ${N8N_OWNER_EMAIL:-admin@example.com}
+      N8N_OWNER_PASSWORD: ${N8N_OWNER_PASSWORD:-}
+      N8N_REIMPORT_WORKFLOWS: ${N8N_REIMPORT_WORKFLOWS:-false}
+      GENERIC_TIMEZONE: ${TZ:-UTC}
+      TZ: ${TZ:-UTC}
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+      # The workflows read their settings with $env
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      # What the emails say, and to whom
+      NOTIFY_TOKEN: ${NOTIFY_TOKEN:-}
+      NOTIFY_PRIORITY: ${NOTIFY_PRIORITY:-high}
+      HALFTIME_DELAY: ${HALFTIME_DELAY:-60}
+      REPORT_DELAY: ${REPORT_DELAY:-300}
+      ANALYSIS_URL: ${ANALYSIS_URL:-http://localhost:8090/analysis/}
+      EMAIL_FROM: ${EMAIL_FROM:-analysis@example.com}
+      STAFF_EMAIL_TO: ${STAFF_EMAIL_TO:-}
+      REPORT_EMAIL_TO: ${REPORT_EMAIL_TO:-}
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      # The ingest service's agent API, for the reports
+      INGEST_URL: http://ingest:8080
+      INGEST_READ_TOKEN: ${INGEST_READ_TOKEN:-}
+      # The agent's narrator: the story of the half or the match in the reports, in RECAP_LANGUAGE
+      # (a code or a name: en, es, Portuguese…), for RECAP_AUDIENCE (coach, analyst, fan)
+      AGENT_URL: http://agent:11434
+      RECAP_LANGUAGE: ${RECAP_LANGUAGE:-en}
+      RECAP_AUDIENCE: ${RECAP_AUDIENCE:-coach}
+    volumes:
+      - n8n-data:/home/node/.n8n
+      - ./config/n8n/entrypoint.sh:/p4n4/entrypoint.sh:ro
+      - ./config/n8n/workflows:/p4n4/workflows:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:5678/healthz/readiness || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      # Provisioning runs n8n's CLI several times before the server starts
+      start_period: 120s
+    networks:
+      - p4n4-net
+
+  # ------------------------------------------------------------------------------------
+  # Local inbox (Mailpit; profile "mailpit"): catches every email n8n sends
+  # ------------------------------------------------------------------------------------
+  mailpit:
+    image: axllent/mailpit:v1.27
+    container_name: p4n4-mailpit
+    restart: ${RESTART_POLICY:-unless-stopped}
+    profiles: [mailpit]
+    ports:
+      - "8025:8025"   # web inbox
+    environment:
+      MP_MAX_MESSAGES: 5000
+      TZ: ${TZ:-UTC}
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - p4n4-net
+
+  # ------------------------------------------------------------------------------------
+  # Vision (profile "vision"): the models on recorded footage, on CPU. Not a service that
+  # stays up: build it once, then extras/scripts/clips.py runs it
+  # (analyze, detect, overlay), memory capped and without network. See README "Video".
+  # ------------------------------------------------------------------------------------
+  vision:
+    build: ./vision
+    image: brighton-vision:dev
+    profiles: [vision]
+    environment:
+      TZ: ${TZ:-UTC}
+      DEVICE: ${VISION_DEVICE:-cpu}
+      PITCH_LENGTH: ${PITCH_LENGTH:-105}
+      PITCH_WIDTH: ${PITCH_WIDTH:-68}
+    volumes:
+      - ./vision/models:/models:ro
+      # Clips in, analysis/<clip>/ (alerts.json, keyframes, frames.json) out
+      - ../extras/clips:/clips
+    network_mode: none
+
+# ====================================================================================
+# NETWORKS
+# ====================================================================================
+networks:
+  p4n4-net:
+    external: true
+    name: p4n4-net
+
+# ====================================================================================
+# VOLUMES
+# ====================================================================================
+volumes:
+  ollama-data:
+  n8n-data:

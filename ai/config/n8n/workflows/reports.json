@@ -1,0 +1,394 @@
+{
+  "id": "brightonReports",
+  "name": "Brighton · reports",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "path": "brighton/half-time",
+        "httpMethod": "POST",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "r-half",
+      "name": "Half time",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -80
+      ],
+      "webhookId": "23e1cdce-cd75-5f56-9519-4e18da2cf4f4"
+    },
+    {
+      "parameters": {
+        "path": "brighton/full-time",
+        "httpMethod": "POST",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "r-whistle",
+      "name": "Full time",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        80
+      ],
+      "webhookId": "7f861f23-6813-5278-b3aa-3013be3c6f41"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- helpers ---------------------------------------------------------------\n// Settings come from the container environment (ai/.env)\nconst setting = (name, fallback) => {\n    const value = $env[name];\n    return value === undefined || value === '' ? fallback : String(value);\n};\nconst ZONE = setting('TZ', 'Europe/London');\nconst esc = (v) => String(v ?? '').replace(/[&<>\"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n// Whether a webhook call carries the ingest service's NOTIFY_TOKEN\nconst fromIngest = (request) => {\n    const token = setting('NOTIFY_TOKEN', '');\n    return !token || (request.headers || {})['x-notify-token'] === token;\n};\n\n// Colours: the Premier League's purple and its gradient for the brand; the plan's statuses\n// in the status colours, always with their icons (as on the analysis page)\nconst CLUB = '#37003c', NAVY = '#37003c', INK = '#1f0024', MUTED = '#725d79', LINE = '#e3d9e6';\n// The league's gradient, as table cells (email clients don't draw gradients)\nconst GRADIENT = ['#04f5ff', '#00ff85', '#e90052', '#963cff'];\nconst STRIPES = `<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\"><tr>${\n  GRADIENT.map((c) => `<td height=\"6\" style=\"height:6px;font-size:0;line-height:0;background:${c}\">&nbsp;</td>`).join('')}</tr></table>`;\nconst STATUS = { on_plan: ['#0b8a0b', '✓ on plan'], drifting: ['#b7791f', '~ drifting'], off_plan: ['#c42f2f', '✕ off plan'],\n                 no_data: [MUTED, '– no data'] };\nconst CALLS = { pending_review: 'Not called yet', confirmed: 'Flagged for the bench', dismissed: 'Expected' };\n\nconst score = (m) => m.score || `${m.home.code} ${m.score.home}-${m.score.away} ${m.away.code}`;\nconst scoreOf = (m) => `${m.home.code} ${m.score.home}-${m.score.away} ${m.away.code}`;\nconst when = (iso) => DateTime.fromISO(iso).setZone(ZONE).toFormat(\"ccc d LLL, HH:mm\");\nconst roomUrl = () => setting('ANALYSIS_URL', 'http://localhost:8090/analysis/');\n// The analysis room, opened on one deviation or play\nconst roomLink = (site, matchId, ref) => roomUrl() + '#' + [site, matchId, ref].filter(Boolean).map(encodeURIComponent).join('/');\nconst reportLink = (site, matchId, part) => roomUrl() + `report.html?part=${part}#` + [site, matchId].map(encodeURIComponent).join('/');\nconst chip = (status) => `<span style=\"display:inline-block;padding:1px 8px;border-radius:999px;border:1px solid ${STATUS[status][0]};`\n    + `color:${STATUS[status][0]};font-size:12px;font-weight:600;white-space:nowrap\">${esc(STATUS[status][1])}</span>`;\nconst button = (href, text) => `<a href=\"${esc(href)}\" style=\"display:inline-block;background:${CLUB};color:#fff;text-decoration:none;`\n    + `font-weight:600;padding:10px 18px;border-radius:6px\">${esc(text)}</a>`;\n// An email: the band with the brand and the match, then the body\nconst page = (title, match, body) => `<!doctype html><html><body style=\"margin:0;background:#f7f4f8;font-family:Barlow,'Segoe UI',Arial,sans-serif;color:${INK}\">\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f7f4f8\"><tr><td align=\"center\" style=\"padding:20px 10px\">\n<table role=\"presentation\" width=\"660\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:660px;width:100%;background:#fff;border:1px solid ${LINE};border-radius:8px;overflow:hidden\">\n<tr><td style=\"padding:0\">${STRIPES}</td></tr>\n<tr><td style=\"background:${NAVY};color:#fff;padding:13px 22px;font-size:13px;font-weight:600\">Match Intelligence · ${esc(title)}</td></tr>\n<tr><td style=\"padding:18px 22px 4px;font-size:26px;font-weight:800;letter-spacing:.01em\">${esc(match.home.code)}\n  <span style=\"background:${CLUB};color:#fff;padding:2px 10px;border-radius:4px;margin:0 6px\">${match.score.home} – ${match.score.away}</span>${esc(match.away.code)}</td></tr>\n<tr><td style=\"padding:0 22px 14px;color:${MUTED};font-size:13px\">${esc(match.home.name)} v ${esc(match.away.name)} · ${esc(match.competition)}`\n    + `${match.matchday ? ' · Matchday ' + match.matchday : ''}${match.venue ? ' · ' + esc(match.venue) : ''}</td></tr>\n<tr><td style=\"padding:0 22px 22px\">${body}</td></tr>\n<tr><td style=\"padding:14px 22px;border-top:1px solid ${LINE};color:${MUTED};font-size:12px\">Measured by the club's match device every 5 minutes; the plan and the calls are the staff's.${match.synthetic ? ' Demo data (synthetic).' : ''}</td></tr>\n</table></td></tr></table></body></html>`;\n\n// ---- half time or full time → which match and which report -----------------\n// The ingest service posts here when a match's status becomes half_time or\n// full_time. The report waits (next node), so the analyst can make the last calls.\nconst request = $input.first().json;\nif (!fromIngest(request)) return [];\nconst match = (request.body || {}).match;\nif (!match || !match.match_id) return [];\nconst part = (request.body || {}).event === 'half_time' ? 'half' : 'full';\nconst delay = Number(setting(part === 'half' ? 'HALFTIME_DELAY' : 'REPORT_DELAY', part === 'half' ? '60' : '300'));\nreturn [{ json: { site_id: match.site_id, match_id: match.match_id, part, delay: delay >= 0 ? delay : 0 } }];\n"
+      },
+      "id": "r-which-whistle",
+      "name": "Which match",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "amount": "={{ $json.delay }}",
+        "unit": "seconds"
+      },
+      "id": "r-wait",
+      "name": "Let the analyst finish",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        0
+      ],
+      "webhookId": "60146db5-c559-5701-8486-aac7a654bd7d"
+    },
+    {
+      "parameters": {
+        "path": "brighton/report",
+        "httpMethod": "GET",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "r-now",
+      "name": "Report now",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        260
+      ],
+      "webhookId": "b84b3496-e548-5abd-bf7b-3ace4f659044"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- helpers ---------------------------------------------------------------\n// Settings come from the container environment (ai/.env)\nconst setting = (name, fallback) => {\n    const value = $env[name];\n    return value === undefined || value === '' ? fallback : String(value);\n};\nconst ZONE = setting('TZ', 'Europe/London');\nconst esc = (v) => String(v ?? '').replace(/[&<>\"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n// Whether a webhook call carries the ingest service's NOTIFY_TOKEN\nconst fromIngest = (request) => {\n    const token = setting('NOTIFY_TOKEN', '');\n    return !token || (request.headers || {})['x-notify-token'] === token;\n};\n\n// Colours: the Premier League's purple and its gradient for the brand; the plan's statuses\n// in the status colours, always with their icons (as on the analysis page)\nconst CLUB = '#37003c', NAVY = '#37003c', INK = '#1f0024', MUTED = '#725d79', LINE = '#e3d9e6';\n// The league's gradient, as table cells (email clients don't draw gradients)\nconst GRADIENT = ['#04f5ff', '#00ff85', '#e90052', '#963cff'];\nconst STRIPES = `<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\"><tr>${\n  GRADIENT.map((c) => `<td height=\"6\" style=\"height:6px;font-size:0;line-height:0;background:${c}\">&nbsp;</td>`).join('')}</tr></table>`;\nconst STATUS = { on_plan: ['#0b8a0b', '✓ on plan'], drifting: ['#b7791f', '~ drifting'], off_plan: ['#c42f2f', '✕ off plan'],\n                 no_data: [MUTED, '– no data'] };\nconst CALLS = { pending_review: 'Not called yet', confirmed: 'Flagged for the bench', dismissed: 'Expected' };\n\nconst score = (m) => m.score || `${m.home.code} ${m.score.home}-${m.score.away} ${m.away.code}`;\nconst scoreOf = (m) => `${m.home.code} ${m.score.home}-${m.score.away} ${m.away.code}`;\nconst when = (iso) => DateTime.fromISO(iso).setZone(ZONE).toFormat(\"ccc d LLL, HH:mm\");\nconst roomUrl = () => setting('ANALYSIS_URL', 'http://localhost:8090/analysis/');\n// The analysis room, opened on one deviation or play\nconst roomLink = (site, matchId, ref) => roomUrl() + '#' + [site, matchId, ref].filter(Boolean).map(encodeURIComponent).join('/');\nconst reportLink = (site, matchId, part) => roomUrl() + `report.html?part=${part}#` + [site, matchId].map(encodeURIComponent).join('/');\nconst chip = (status) => `<span style=\"display:inline-block;padding:1px 8px;border-radius:999px;border:1px solid ${STATUS[status][0]};`\n    + `color:${STATUS[status][0]};font-size:12px;font-weight:600;white-space:nowrap\">${esc(STATUS[status][1])}</span>`;\nconst button = (href, text) => `<a href=\"${esc(href)}\" style=\"display:inline-block;background:${CLUB};color:#fff;text-decoration:none;`\n    + `font-weight:600;padding:10px 18px;border-radius:6px\">${esc(text)}</a>`;\n// An email: the band with the brand and the match, then the body\nconst page = (title, match, body) => `<!doctype html><html><body style=\"margin:0;background:#f7f4f8;font-family:Barlow,'Segoe UI',Arial,sans-serif;color:${INK}\">\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f7f4f8\"><tr><td align=\"center\" style=\"padding:20px 10px\">\n<table role=\"presentation\" width=\"660\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:660px;width:100%;background:#fff;border:1px solid ${LINE};border-radius:8px;overflow:hidden\">\n<tr><td style=\"padding:0\">${STRIPES}</td></tr>\n<tr><td style=\"background:${NAVY};color:#fff;padding:13px 22px;font-size:13px;font-weight:600\">Match Intelligence · ${esc(title)}</td></tr>\n<tr><td style=\"padding:18px 22px 4px;font-size:26px;font-weight:800;letter-spacing:.01em\">${esc(match.home.code)}\n  <span style=\"background:${CLUB};color:#fff;padding:2px 10px;border-radius:4px;margin:0 6px\">${match.score.home} – ${match.score.away}</span>${esc(match.away.code)}</td></tr>\n<tr><td style=\"padding:0 22px 14px;color:${MUTED};font-size:13px\">${esc(match.home.name)} v ${esc(match.away.name)} · ${esc(match.competition)}`\n    + `${match.matchday ? ' · Matchday ' + match.matchday : ''}${match.venue ? ' · ' + esc(match.venue) : ''}</td></tr>\n<tr><td style=\"padding:0 22px 22px\">${body}</td></tr>\n<tr><td style=\"padding:14px 22px;border-top:1px solid ${LINE};color:${MUTED};font-size:12px\">Measured by the club's match device every 5 minutes; the plan and the calls are the staff's.${match.synthetic ? ' Demo data (synthetic).' : ''}</td></tr>\n</table></td></tr></table></body></html>`;\n\n// ---- GET /webhook/brighton/report?match_id=…&part=half|full → which match ----\n// All optional: without them, the match being played (or the latest), and the match report.\nconst query = $input.first().json.query || {};\nreturn [{ json: { site_id: query.site_id || '', match_id: query.match_id || '', part: query.part === 'half' ? 'half' : 'full' } }];\n"
+      },
+      "id": "r-manual",
+      "name": "Match asked for",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        260
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "r-which",
+      "name": "Which report",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        660,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.INGEST_URL }}/api/v1/agent/match?match_id={{ encodeURIComponent($json.match_id) }}&site_id={{ encodeURIComponent($json.site_id) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.INGEST_READ_TOKEN }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "r-match",
+      "name": "Read match",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.INGEST_URL }}/api/v1/agent/plan?match_id={{ encodeURIComponent($json.match.match_id) }}&site_id={{ encodeURIComponent($json.match.site_id) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.INGEST_READ_TOKEN }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "r-plan",
+      "name": "Read plan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AGENT_URL }}/api/recap",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ match_id: $('Read match').first().json.match.match_id, part: $('Which report').first().json.part === 'half' ? 'half' : 'full', audience: $env.RECAP_AUDIENCE || 'coach', language: $env.RECAP_LANGUAGE || 'en' }) }}",
+        "options": {
+          "timeout": 240000
+        }
+      },
+      "id": "r-story",
+      "name": "Narrator's story",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        100
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- helpers ---------------------------------------------------------------\n// Settings come from the container environment (ai/.env)\nconst setting = (name, fallback) => {\n    const value = $env[name];\n    return value === undefined || value === '' ? fallback : String(value);\n};\nconst ZONE = setting('TZ', 'Europe/London');\nconst esc = (v) => String(v ?? '').replace(/[&<>\"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n// Whether a webhook call carries the ingest service's NOTIFY_TOKEN\nconst fromIngest = (request) => {\n    const token = setting('NOTIFY_TOKEN', '');\n    return !token || (request.headers || {})['x-notify-token'] === token;\n};\n\n// Colours: the Premier League's purple and its gradient for the brand; the plan's statuses\n// in the status colours, always with their icons (as on the analysis page)\nconst CLUB = '#37003c', NAVY = '#37003c', INK = '#1f0024', MUTED = '#725d79', LINE = '#e3d9e6';\n// The league's gradient, as table cells (email clients don't draw gradients)\nconst GRADIENT = ['#04f5ff', '#00ff85', '#e90052', '#963cff'];\nconst STRIPES = `<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\"><tr>${\n  GRADIENT.map((c) => `<td height=\"6\" style=\"height:6px;font-size:0;line-height:0;background:${c}\">&nbsp;</td>`).join('')}</tr></table>`;\nconst STATUS = { on_plan: ['#0b8a0b', '✓ on plan'], drifting: ['#b7791f', '~ drifting'], off_plan: ['#c42f2f', '✕ off plan'],\n                 no_data: [MUTED, '– no data'] };\nconst CALLS = { pending_review: 'Not called yet', confirmed: 'Flagged for the bench', dismissed: 'Expected' };\n\nconst score = (m) => m.score || `${m.home.code} ${m.score.home}-${m.score.away} ${m.away.code}`;\nconst scoreOf = (m) => `${m.home.code} ${m.score.home}-${m.score.away} ${m.away.code}`;\nconst when = (iso) => DateTime.fromISO(iso).setZone(ZONE).toFormat(\"ccc d LLL, HH:mm\");\nconst roomUrl = () => setting('ANALYSIS_URL', 'http://localhost:8090/analysis/');\n// The analysis room, opened on one deviation or play\nconst roomLink = (site, matchId, ref) => roomUrl() + '#' + [site, matchId, ref].filter(Boolean).map(encodeURIComponent).join('/');\nconst reportLink = (site, matchId, part) => roomUrl() + `report.html?part=${part}#` + [site, matchId].map(encodeURIComponent).join('/');\nconst chip = (status) => `<span style=\"display:inline-block;padding:1px 8px;border-radius:999px;border:1px solid ${STATUS[status][0]};`\n    + `color:${STATUS[status][0]};font-size:12px;font-weight:600;white-space:nowrap\">${esc(STATUS[status][1])}</span>`;\nconst button = (href, text) => `<a href=\"${esc(href)}\" style=\"display:inline-block;background:${CLUB};color:#fff;text-decoration:none;`\n    + `font-weight:600;padding:10px 18px;border-radius:6px\">${esc(text)}</a>`;\n// An email: the band with the brand and the match, then the body\nconst page = (title, match, body) => `<!doctype html><html><body style=\"margin:0;background:#f7f4f8;font-family:Barlow,'Segoe UI',Arial,sans-serif;color:${INK}\">\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f7f4f8\"><tr><td align=\"center\" style=\"padding:20px 10px\">\n<table role=\"presentation\" width=\"660\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:660px;width:100%;background:#fff;border:1px solid ${LINE};border-radius:8px;overflow:hidden\">\n<tr><td style=\"padding:0\">${STRIPES}</td></tr>\n<tr><td style=\"background:${NAVY};color:#fff;padding:13px 22px;font-size:13px;font-weight:600\">Match Intelligence · ${esc(title)}</td></tr>\n<tr><td style=\"padding:18px 22px 4px;font-size:26px;font-weight:800;letter-spacing:.01em\">${esc(match.home.code)}\n  <span style=\"background:${CLUB};color:#fff;padding:2px 10px;border-radius:4px;margin:0 6px\">${match.score.home} – ${match.score.away}</span>${esc(match.away.code)}</td></tr>\n<tr><td style=\"padding:0 22px 14px;color:${MUTED};font-size:13px\">${esc(match.home.name)} v ${esc(match.away.name)} · ${esc(match.competition)}`\n    + `${match.matchday ? ' · Matchday ' + match.matchday : ''}${match.venue ? ' · ' + esc(match.venue) : ''}</td></tr>\n<tr><td style=\"padding:0 22px 22px\">${body}</td></tr>\n<tr><td style=\"padding:14px 22px;border-top:1px solid ${LINE};color:${MUTED};font-size:12px\">Measured by the club's match device every 5 minutes; the plan and the calls are the staff's.${match.synthetic ? ' Demo data (synthetic).' : ''}</td></tr>\n</table></td></tr></table></body></html>`;\n\n// ---- the half-time or match report → the staff -----------------------------\n// From the ingest service's agent API (Read match, Read plan): the score, the\n// plan's targets with their status, the deviations and the analyst's calls,\n// both teams' numbers (set pieces and running too), who is running less than\n// in his first 30', and the key plays. Emailed as HTML, with a CSV of every\n// target in every 5-minute window. The narrator agent's story of the half or\n// the match goes first when the agent wrote one (Narrator's story).\nconst which = $('Which report').first().json;\nconst summary = $('Read match').first().json;\nconst plan = $('Read plan').first().json;\nconst match = summary.match;\nconst half = which.part === 'half';\nconst title = half ? 'Half-time report' : 'Match report';\nconst subject = `${title}: ${scoreOf(match)} · ${DateTime.fromISO(match.kickoff).setZone(ZONE).toFormat('d LLL yyyy')}`;\nconst cols = half ? [['first_half', '1st half'], ['first_half_last_15', \"Last 15' of the half\"]] : [['first_half', '1st half'], ['second_half', '2nd half'], ['match', 'Match']];\nconst td = (v, style = '') => `<td style=\"padding:5px 8px;border-bottom:1px solid ${LINE};vertical-align:top;${style}\">${v}</td>`;\nconst th = (v, align = 'left') => `<th align=\"${align}\" style=\"padding:5px 8px;border-bottom:2px solid ${LINE};color:${MUTED};font-weight:600;font-size:12px\">${esc(v)}</th>`;\nconst targets = plan.targets || [];\nconst planTable = targets.length ? `<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"font-size:13px;border-collapse:collapse\">\n<tr>${th('Target')}${th('Plan')}${cols.map(([, l]) => th(l)).join('')}</tr>\n${targets.map((t) => '<tr>' + td((t.key ? '★ ' : '') + esc(t.name)) + td(esc(t.target), \"font-family:'IBM Plex Mono',monospace\")\n    + cols.map(([k]) => td(`<span style=\"font-family:'IBM Plex Mono',monospace\">${esc(t[k].text)}</span> ${chip(t[k].status)}`, 'white-space:nowrap')).join('') + '</tr>').join('')}\n</table>` : `<p style=\"color:${MUTED}\">No game plan for this match.</p>`;\nconst devs = (summary.deviations || []).filter((d) => !half || d.period === 1);\nconst devList = devs.length ? `<ol style=\"margin:0;padding-left:20px;font-size:13.5px\">${devs.map((d) => `<li style=\"margin-bottom:5px\"><b>${esc(d.minute)}'</b> ${esc(d.title)}`\n    + ` · <span style=\"color:${d.status === 'confirmed' ? CLUB : MUTED};font-weight:600\">${esc(CALLS[d.status] || d.status)}</span>`\n    + `${d.note ? ` · <i>“${esc(d.note)}”</i>` : ''}${d.open ? '' : ' · back on plan'}</li>`).join('')}</ol>`\n    : `<p style=\"color:${MUTED};margin:0\">No deviations from the plan${half ? ' in the first half' : ''}.</p>`;\nconst us = summary.numbers ? summary.numbers.us : null, them = summary.numbers ? summary.numbers.opponent : null;\nconst pct = (v) => (v === null || v === undefined ? '–' : Math.round(v) + '%');\nconst num = (v, d = 1) => (v === null || v === undefined ? '–' : Number(v).toFixed(d));\nconst rows = us ? [['Possession', pct(us.possession_pct), pct(them.possession_pct)], ['Pass completion', pct(us.pass_accuracy_pct), pct(them.pass_accuracy_pct)],\n    ['PPDA', num(us.ppda), num(them.ppda)], ['Shots (on target)', `${us.shots} (${us.shots_on_target})`, `${them.shots} (${them.shots_on_target})`],\n    ['xG', num(us.xg, 2), num(them.xg, 2)], ['High regains', us.regains_high, them.regains_high],\n    ['Set pieces into the box (first contact)', `${us.set_pieces} (${pct(us.set_piece_first_contact_pct)})`, `${them.set_pieces} (${pct(them.set_piece_first_contact_pct)})`],\n    ['Set-piece xG', num(us.set_piece_xg, 2), num(them.set_piece_xg, 2)],\n    ['High-speed running', `${us.hsr_m} m`, `${them.hsr_m} m`], ['Sprints', us.sprints, them.sprints],\n    ['Line height', num(us.line_height_m) + ' m', num(them.line_height_m) + ' m'], ['Shape in / out of possession',\n    `${us.shape_in_possession || '–'} / ${us.shape_out_of_possession || '–'}`, `${them.shape_in_possession || '–'} / ${them.shape_out_of_possession || '–'}`]] : [];\nconst numbers = rows.length ? `<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"font-size:13px;border-collapse:collapse\">\n<tr>${th('')}${th(match.us.code, 'right')}${th(match.opponent.code, 'right')}</tr>\n${rows.map(([k, a, b]) => '<tr>' + td(esc(k)) + td(esc(a), \"text-align:right;font-family:'IBM Plex Mono',monospace\") + td(esc(b), \"text-align:right;font-family:'IBM Plex Mono',monospace\") + '</tr>').join('')}</table>` : '';\nconst plays = (summary.key_plays || []).filter((p) => !half || p.period === 1).slice(-10);\nconst drops = (summary.running_drops_last_15 || []).filter((d) => d.drop_pct >= 10);\nconst running = drops.length ? `<p style=\"margin:10px 0 0;font-size:13.5px\"><b>Running, last 15'${half ? ' of the half' : ''}:</b> `\n    + drops.map((d) => `#${esc(d.number)}${d.name ? ' ' + esc(d.name) : ''} ${Math.round(d.drop_pct)}% less ground a minute than in his first 30' (${esc(d.m_per_min_now)} m against ${esc(d.m_per_min_first_30)})`).join('; ') + '.</p>' : '';\nconst share = plan.on_plan_share === null || plan.on_plan_share === undefined ? '–' : Math.round(plan.on_plan_share * 100) + '%';\nlet story = null;\ntry {\n    const told = $(\"Narrator's story\").first().json;\n    if (told && told.recap) story = told;\n} catch (e) { story = null; }\nconst storyBlock = story ? `<h3 style=\"margin:0 0 8px;font-size:16px\">The story of the ${half ? 'half' : 'match'}</h3>\n<div dir=\"auto\" style=\"font-size:14px;line-height:1.55\">${story.recap.split(/\\n+/).filter((x) => x.trim()).map((x) => `<p style=\"margin:0 0 8px\">${esc(x)}</p>`).join('')}</div>\n<p style=\"margin:0 0 18px;color:${MUTED};font-size:12px\">Written by ${story.backend === 'azure' ? 'the narrator agent on Azure OpenAI' : 'the offline model'}, from the match device's numbers.</p>` : '';\n\nconst body = `\n<p style=\"margin:0 0 4px;font-size:13px;color:${MUTED}\">${esc(when(match.kickoff))}${half ? ' · at half time' : ''}</p>\n${storyBlock}\n<p style=\"margin:0 0 14px;font-size:16px\"><b>${esc((plan.plan && plan.plan.title) || 'Game plan')}</b> · <b>${esc(share)}</b> of targets on plan so far</p>\n${planTable}\n<h3 style=\"margin:20px 0 8px;font-size:16px\">For the ${half ? 'half-time talk' : 'debrief'}</h3>\n${devList}\n<h3 style=\"margin:20px 0 8px;font-size:16px\">The numbers${half ? ' at half time' : ''}</h3>\n${numbers}\n${running}\n${plays.length ? `<h3 style=\"margin:20px 0 8px;font-size:16px\">Key plays</h3><ul style=\"margin:0;padding-left:20px;font-size:13.5px\">${plays.map((p) => `<li><b>${esc(p.minute)}'</b> ${esc(p.summary)}</li>`).join('')}</ul>` : ''}\n<p style=\"margin:20px 0 0\">${button(reportLink(summary.match.site_id || which.site_id, match.match_id, which.part), 'Open the printable ' + title.toLowerCase())}</p>\n<p style=\"margin:12px 0 0;color:${MUTED};font-size:12px\">Every target in every 5 minutes is in the attached CSV. Generated by p4n4, ${esc(DateTime.now().setZone(ZONE).toFormat('yyyy-MM-dd HH:mm'))}.</p>`;\n\nconst csvCell = (v) => (v === null || v === undefined ? '' : /[\",\\n]/.test(String(v)) ? '\"' + String(v).replace(/\"/g, '\"\"') + '\"' : String(v));\nconst csv = [['target', 'plan', 'key', 'window', 'status', 'value']];\nfor (const t of plan.targets || []) {\n    for (const w of t.windows || []) csv.push([t.name, t.target, t.key ? 'yes' : '', w.label, w.status, w.value]);\n}\nconst csvText = '﻿' + csv.map((r) => r.map(csvCell).join(',')).join('\\n') + '\\n';\nconst name = (half ? 'half-time-' : 'match-report-') + match.match_id;\nconst to = setting(half ? 'STAFF_EMAIL_TO' : 'REPORT_EMAIL_TO', '');\nreturn [{\n    json: { to, subject, html: page(title, { ...match, synthetic: summary.synthetic_data }, body), match_id: match.match_id, part: which.part,\n            score: scoreOf(match), on_plan_share: plan.on_plan_share, deviations: devs.length, file: name + '.csv' },\n    binary: { csv: { data: Buffer.from(csvText, 'utf8').toString('base64'), mimeType: 'text/csv', fileName: name + '.csv' } },\n}];\n"
+      },
+      "id": "r-build",
+      "name": "Build report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.EMAIL_FROM }}",
+        "toEmail": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false,
+          "attachments": "csv"
+        }
+      },
+      "id": "r-email",
+      "name": "Email the staff",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1760,
+        100
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "brightonSmtp",
+          "name": "Brighton analysis SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// The webhook's response: what was sent\nconst r = $('Build report').first().json;\nreturn [{ json: { match_id: r.match_id, part: r.part, score: r.score, subject: r.subject, to: r.to,\n    on_plan_share: r.on_plan_share, deviations: r.deviations, file: r.file } }];\n"
+      },
+      "id": "r-result",
+      "name": "Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "width": 680,
+        "height": 260,
+        "content": "## Brighton · reports\nAt half time the ingest service posts `POST /webhook/brighton/half-time`; `HALFTIME_DELAY` seconds later (default 60, so the analyst can make the last calls) the half-time report goes to `STAFF_EMAIL_TO`: the plan's targets in the first half, the deviations with the analyst's calls and notes, the numbers and the key plays, the narrator agent's story of the half (`RECAP_LANGUAGE`, `RECAP_AUDIENCE`), with a button to the printable report. At full time (`/full-time`), `REPORT_DELAY` seconds later (default 300), the match report goes to `REPORT_EMAIL_TO`. Both attach a CSV of every target in every 5 minutes.\n\n`GET /webhook/brighton/report?match_id=…&part=half|full` sends one now (default: the match being played, or the latest)."
+      },
+      "id": "r-note",
+      "name": "About",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        220,
+        -380
+      ]
+    }
+  ],
+  "connections": {
+    "Half time": {
+      "main": [
+        [
+          {
+            "node": "Which match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Full time": {
+      "main": [
+        [
+          {
+            "node": "Which match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Which match": {
+      "main": [
+        [
+          {
+            "node": "Let the analyst finish",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Let the analyst finish": {
+      "main": [
+        [
+          {
+            "node": "Which report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Which report": {
+      "main": [
+        [
+          {
+            "node": "Read match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read match": {
+      "main": [
+        [
+          {
+            "node": "Read plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read plan": {
+      "main": [
+        [
+          {
+            "node": "Narrator's story",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Narrator's story": {
+      "main": [
+        [
+          {
+            "node": "Build report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build report": {
+      "main": [
+        [
+          {
+            "node": "Email the staff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email the staff": {
+      "main": [
+        [
+          {
+            "node": "Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Report now": {
+      "main": [
+        [
+          {
+            "node": "Match asked for",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match asked for": {
+      "main": [
+        [
+          {
+            "node": "Which report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "tags": [],
+  "description": "Emails the staff the half-time report and the coaching staff the match report.",
+  "versionId": "7dcc9b53-2ebf-58c0-8fed-b14c82728b17"
+}

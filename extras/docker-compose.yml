@@ -1,0 +1,59 @@
+services:
+
+  # ====================================================================================
+  # brighton-match-analysis: extras layer, with the match device (at the Amex, or on the road)
+  #   tactical and broadcast cameras ──► video :1984 ──MJPEG──► p4n4-dashboard Video tab
+  #   (or clips/*.mp4 on a loop; or synthetic cameras        analysis room (../iot :8090/analysis/)
+  #    drawing the demo's live match)
+  # Joins p4n4-net: on the same host as ../iot, start that first; on a machine of its
+  # own, `docker network create p4n4-net` once.
+  # ====================================================================================
+
+  # ------------------------------------------------------------------------------------
+  # Video (go2rtc): the match cameras, as MJPEG
+  # ------------------------------------------------------------------------------------
+  video:
+    image: alexxit/go2rtc:1.9.14
+    container_name: p4n4-video
+    restart: ${RESTART_POLICY:-unless-stopped}
+    ports:
+      - "1984:1984"   # MJPEG streams, snapshots and go2rtc's web UI: the club's network only
+    # video.sh writes go2rtc's config from the CAMERA_*_URL variables, then runs it
+    entrypoint: ["/bin/sh", "/p4n4/video.sh"]
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      CAMERA_TACTICAL_URL: ${CAMERA_TACTICAL_URL:-}
+      CAMERA_TV_URL: ${CAMERA_TV_URL:-}
+      # The synthetic cameras draw the simulator's live match: its speed, club and time zone
+      DEMO_SPEED: ${DEMO_SPEED:-3}
+      SITE_ID: ${SITE_ID:-brighton}
+      SITE_TZ: ${SITE_TZ:-UTC}
+      LEAGUE_FILE: /p4n4/league.json
+      SIM_DIR: /p4n4/sim
+      PYTHONDONTWRITEBYTECODE: "1"
+    volumes:
+      - ./config/go2rtc/video.sh:/p4n4/video.sh:ro
+      - ./config/go2rtc/pitch.py:/p4n4/pitch.py:ro
+      # The match engine the simulator plays (../iot/scripts), and the league's clubs and kits
+      - ../iot/scripts:/p4n4/sim:ro
+      - ../iot/ingest/analysis/league.json:/p4n4/league.json:ro
+      # tactical.mp4, tv.mp4 to loop in place of a URL; any other <id>.mp4 is a camera of its own
+      - ./clips:/p4n4/clips:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:1984/api"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    networks:
+      - p4n4-net
+
+# ====================================================================================
+# NETWORKS
+# ====================================================================================
+networks:
+  p4n4-net:
+    external: true
+    name: p4n4-net

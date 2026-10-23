@@ -1,0 +1,137 @@
+{
+ "id": "pl-match-intelligence",
+ "appName": "Match Intelligence",
+ "wordmark": {
+  "text": "premier league",
+  "suffix": " match intelligence"
+ },
+ "logo": {
+  "light": "logo-light.png",
+  "dark": "logo-dark.png"
+ },
+ "platform": "brighton",
+ "tagline": "Premier League match intelligence: a match device measures every match every 5 minutes (the press, the shape, set pieces, every player's running, pass quality and ball speed), explains what drifts off the game plan and why, and brings it to the analyst, the bench and the staff live, in the reports after, and through an assistant.",
+ "fonts": {
+  "display": "Barlow Condensed",
+  "mono": "IBM Plex Mono"
+ },
+ "colors": {
+  "light": {
+   "bg": "#F7F4F8",
+   "bg2": "#FFFFFF",
+   "bg3": "#F1EBF3",
+   "accent": "#37003C",
+   "accent2": "#C4005F",
+   "onAccent": "#FFFFFF",
+   "heading": "#1F0024",
+   "text": "#3A2340",
+   "border": "#E3D9E6",
+   "border2": "#CFBFD5",
+   "err": "#9F1239",
+   "warn": "#8A5A00"
+  },
+  "dark": {
+   "bg": "#12001A",
+   "bg2": "#1E0629",
+   "bg3": "#2A0B37",
+   "accent": "#04F5FF",
+   "accent2": "#FF2882",
+   "onAccent": "#12001A",
+   "border": "#3A1349",
+   "border2": "#4F1D62",
+   "err": "#FF8A8A"
+  }
+ },
+ "tabs": [
+  "feed",
+  "video",
+  "grafana",
+  "agent",
+  "services",
+  "edge"
+ ],
+ "links": [
+  {
+   "label": "Analysis room",
+   "url": "http://localhost:8090/analysis/"
+  },
+  {
+   "label": "Match story",
+   "url": "http://localhost:8090/analysis/#story-card"
+  },
+  {
+   "label": "Game plan",
+   "url": "http://localhost:8090/analysis/plan.html"
+  },
+  {
+   "label": "Set pieces",
+   "url": "http://localhost:8090/analysis/#set-pieces"
+  },
+  {
+   "label": "Half-time report",
+   "url": "http://localhost:8090/analysis/report.html?part=half"
+  },
+  {
+   "label": "Match report",
+   "url": "http://localhost:8090/analysis/report.html?part=full"
+  },
+  {
+   "label": "The demo's emails",
+   "url": "http://localhost:8025"
+  }
+ ],
+ "defaults": {
+  "host": "localhost",
+  "themeMode": "dark",
+  "locale": "en",
+  "timeFormat": "h24",
+  "temperatureUnit": "celsius",
+  "grafanaPath": "/d/brighton-match-analysis/match-analysis",
+  "tabOrder": "feed,video,grafana,agent,services,edge",
+  "powerTabs": "feed,video,grafana,agent,services,edge",
+  "normieTabs": "feed,grafana,agent",
+  "agentBackend": "ollama",
+  "ollamaModel": "gemma4:e2b",
+  "videoDemo": false
+ },
+ "video": {
+  "demoCameras": [],
+  "overlay": {
+   "objects": {
+    "ball": "#FFFFFF"
+   },
+   "showObjects": true,
+   "showTags": true,
+   "showKey": true
+  }
+ },
+ "assistant": {
+  "suggestions": [
+   "Are we following the game plan?",
+   "Tell the story of the match for a fan, in Spanish",
+   "Who is running less than usual?",
+   "Is the match device working?"
+  ],
+  "suggestionsByView": {
+   "normie": [
+    "How are we doing?",
+    "What should we tell the players?",
+    "Who is running less than usual?",
+    "How is our press working?"
+   ],
+   "power": [
+    "Are we following the game plan?",
+    "Which deviations are still to call?",
+    "How did our set pieces go?",
+    "Tell the story of the match for a fan, in Spanish"
+   ]
+  }
+ },
+ "native": {
+  "displayName": "Match Intelligence",
+  "applicationId": "com.example.pl.matchintelligence",
+  "bundleId": "com.example.pl.matchintelligence",
+  "company": "Premier League match intelligence (demo)",
+  "localNetworkUsage": "Connects to the club's match analysis server and cameras on the local network."
+ }
+}

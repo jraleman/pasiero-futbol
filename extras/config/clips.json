@@ -1,0 +1,5 @@
+{
+ "_about": "Recorded footage for the Video tab and the vision models (extras/scripts/clips.py): sources (a local file or a URL with its SHA-1, the credit, the match and its two kits) and the ranges each camera loops. Empty until the team's own kickabout is filmed (numbered bibs, every player's consent).",
+ "sources": {},
+ "cameras": {}
+}

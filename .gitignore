@@ -1,0 +1,24 @@
+.env
+docker-compose.override.yml
+
+# The ingest service's SQLite (keep the directory: iot/docker-compose.yml mounts it)
+iot/data/ingest/*
+!iot/data/ingest/.gitkeep
+
+# p4n4-api data (users, JWT secret)
+.p4n4-api/
+
+# Footage the video service loops: licensed clips only (keep the directory: extras/docker-compose.yml mounts it)
+extras/clips/*
+!extras/clips/.gitkeep
+
+# Python caches from local runs
+__pycache__/
+
+# Local caches
+.cache/
+
+# Vision models (ai/vision/fetch_models.py downloads them) and the clips' analyses
+ai/vision/models/
+
+static-demo/

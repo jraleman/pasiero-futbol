@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="marks/lion.svg">
+<title>Match report</title>
+<link rel="stylesheet" href="common.css">
+<style>
+/* Paper: always light */
+:root {
+  color-scheme: light;
+  --bg: #ece6ee; --panel: #ffffff; --raise: #f7f4f8; --line: #e3d9e6; --line-2: #cfbfd5;
+  --ink: #1f0024; --ink-2: #4a3150; --muted: #725d79; --accent: #37003c; --on-accent: #fff;
+  --us: #2a78d6; --them: #1baf7a; --pitch: #2e6b3d; --chalk: rgba(255,255,255,.6); --chalk-2: rgba(255,255,255,.2);
+}
+@page { size: A4; margin: 12mm; }
+body { background: var(--bg); font-size: 12.5px; }
+.toolbar { display: flex; gap: 10px; align-items: center; justify-content: center; padding: 12px; }
+.toolbar button, .toolbar a { border: 1px solid var(--line-2); background: #fff; border-radius: 6px; padding: 7px 14px; font-weight: 600; cursor: pointer; color: var(--ink); text-decoration: none; font-size: 13px; }
+.toolbar button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.sheet { width: 210mm; min-height: 297mm; margin: 0 auto 16px; background: #fff; padding: 12mm; box-shadow: 0 2px 14px rgba(0,0,0,.12); }
+.letterhead { display: flex; align-items: center; gap: 14px; padding-bottom: 10px; margin-bottom: 12px; position: relative; }
+.letterhead::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--bar); }
+.letterhead img { width: 54px; height: 54px; object-fit: contain; }
+.letterhead .t { font: 800 24px/1 var(--display); text-transform: uppercase; letter-spacing: .03em; }
+.letterhead .t small { display: block; font: 600 12px Barlow; letter-spacing: .1em; color: var(--accent); margin-bottom: 3px; }
+.letterhead .r { margin-left: auto; text-align: right; color: var(--muted); font-size: 11.5px; }
+.scoreline { display: flex; align-items: center; gap: 16px; margin-bottom: 4px; }
+.scoreline .club { display: flex; align-items: center; gap: 8px; font: 800 30px var(--display); }
+.scoreline .club img, .scoreline .club .crest-none { width: 40px; height: 40px; object-fit: contain; }
+.scoreline .goals { font: 800 34px var(--display); background: var(--brand); color: #fff; padding: 2px 14px; border-radius: 4px; }
+.meta { color: var(--ink-2); margin-bottom: 12px; }
+h2 { font: 700 16px var(--display); text-transform: uppercase; letter-spacing: .05em; margin: 14px 0 6px; border-bottom: 1px solid var(--line); padding-bottom: 3px; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-weight: 600; color: var(--muted); font-size: 11px; padding: 3px 6px; border-bottom: 1px solid var(--line-2); }
+td { padding: 4px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+td.v { font-family: var(--mono); white-space: nowrap; }
+td.v .chip { margin-left: 4px; font-size: 10.5px; }
+.star { color: var(--accent); }
+.devs li { margin-bottom: 6px; }
+.devs { padding-left: 18px; margin: 0; }
+.devs .note { font-style: italic; color: var(--ink-2); }
+.shapes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.shapes figure { margin: 0; }
+.shapes .player text { font-size: 2.4px; }
+.shapes figcaption { font-size: 11px; color: var(--ink-2); margin-top: 3px; }
+.shapes figcaption b { font-family: var(--mono); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.plays { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.plays figure { margin: 0; break-inside: avoid; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.plays img { display: block; width: 100%; }
+.plays figcaption { padding: 5px 7px; font-size: 11.5px; }
+.plays figcaption b { font-family: var(--mono); }
+.instr { padding-left: 18px; margin: 0; }
+.foot { margin-top: 14px; display: flex; justify-content: space-between; gap: 20px; color: var(--muted); font-size: 11px; border-top: 1px solid var(--line); padding-top: 6px; }
+.sign { margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; font-size: 11.5px; color: var(--ink-2); }
+.sign div { border-top: 1px solid var(--ink-2); padding-top: 4px; }
+.pagebreak { break-before: page; }
+table.compact td { padding: 2px 6px; white-space: nowrap; font-size: 11.5px; }
+@media print {
+  body { background: #fff; }
+  body::before { display: none; }
+  .letterhead::after { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .toolbar { display: none; }
+  .sheet { box-shadow: none; margin: 0; width: auto; min-height: 0; padding: 0; }
+}
+@media (max-width: 860px) {
+  .sheet { width: auto; padding: 16px; }
+  .shapes, .two, .plays { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="toolbar"><button class="primary" onclick="print()">Print or save as PDF</button><a id="back" href="./">Back to the analysis room</a><span id="which"></span></div>
+<div id="report"></div>
+<script src="common.js"></script>
+<script>
+"use strict";
+const part = new URLSearchParams(location.search).get("part") === "half" ? "half" : "full";
+const [site, matchId] = decodeURIComponent(location.hash.slice(1)).split("/");
+
+function shapeFigure(d, side, phase, scope, caption) {
+  const svg = document.createElementNS(SVG, "svg");
+  svg.setAttribute("viewBox", "-4 -5 113 77");
+  pitchLines(svg);
+  const m = d.match, k = kits(m.home.code, m.away.code);
+  const fill = side === "home" ? k.home : k.away, ink = side === "home" ? k.homeInk : k.awayInk;
+  const pos = d.shapes[scope]?.[side]?.[phase]?.positions || [];
+  const planned = side === m.team ? d.adherence.plan?.formation?.[phase] : null;
+  if (planned && FORMATIONS[planned] && pos.length) {
+    const xs = pos.map(p => p[1]), ys = pos.map(p => p[2]);
+    const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+    for (const [dd, w] of FORMATIONS[planned]) el("circle", { class: "ghost", cx: x0 + dd * (x1 - x0), cy: y0 + w * (y1 - y0), r: 2.3 }, svg);
+  }
+  for (const [n, x, y] of pos) {
+    const g = el("g", { class: "player", transform: `translate(${x} ${y})` }, svg);
+    el("circle", { class: "disc", r: 2.8, fill }, g);
+    el("text", { fill: ink }, g).textContent = n;
+  }
+  const read = d.shapes[scope]?.[side]?.[phase]?.formation || "–";
+  return `<figure><div class="pitch">${svg.outerHTML}</div><figcaption>${esc(caption)}: <b>${esc(read)}</b>${planned ? ` · plan <b>${esc(planned)}</b>` : ""}</figcaption></figure>`;
+}
+
+async function build() {
+  let d;
+  try { d = await api(`/api/v1/analysis/match?match_id=${encodeURIComponent(matchId)}&site_id=${encodeURIComponent(site)}`); }
+  catch (e) { if (e.message !== "401") $("report").innerHTML = `<div class="sheet">No match ${esc(matchId)}: ${esc(e.message)}</div>`; return; }
+  const m = d.match, a = d.adherence, us = m.team, them = us === "home" ? "away" : "home";
+  const half = part === "half";
+  const scope = half ? "first_half" : "match";
+  const title = half ? "Half-time report" : "Match report";
+  document.title = `${title} · ${scoreText(m)}`;
+  $("back").href = `./#${encodeURIComponent(site)}/${encodeURIComponent(matchId)}`;
+  $("which").innerHTML = `<a href="?part=${half ? "full" : "half"}${location.hash}">${half ? "Match report" : "Half-time report"} instead</a>`;
+  const cols = half ? [["first_half", "1st half"], ["first_half_last_15", "Last 15' of the half"]] : [["first_half", "1st half"], ["second_half", "2nd half"], ["match", "Match"]];
+  const plan = a.plan ? `
+    <h2>Game plan${a.plan.inherited ? " (club default)" : ""}</h2>
+    <p style="margin:0 0 6px"><b>${esc(a.plan.title || "")}</b></p>
+    <table><tr><th>Target</th><th>Plan</th>${cols.map(([, l]) => `<th>${esc(l)}</th>`).join("")}</tr>
+    ${a.targets.map(t => `<tr><td>${t.key ? '<span class="star">★</span> ' : ""}${esc(t.name)}</td><td class="v">${esc(t.target)}</td>` +
+      cols.map(([k]) => `<td class="v">${esc(t[k].text)}${chip(t[k].status)}</td>`).join("") + "</tr>").join("")}</table>` :
+    `<h2>Game plan</h2><p>No plan for this match.</p>`;
+  const devs = d.deviations.filter(x => !half || x.period === 1);
+  const flagged = devs.filter(x => x.status === "confirmed"), open = devs.filter(x => x.status === "pending_review"), expected = devs.filter(x => x.status === "dismissed");
+  const devItem = x => `<li><b>${esc(x.minute)}'</b> ${x.key ? '<span class="star">★</span> ' : ""}${esc(x.title)}: ${esc(x.value)} (plan ${esc(x.target)})${x.back_on_plan ? `, back on plan at ${esc(x.back_on_plan.minute)}'` : ", still off plan"}.` +
+    `${x.note ? ` <span class="note">“${esc(x.note)}”${x.reviewed_by ? ` · ${esc(x.reviewed_by)}` : ""}</span>` : x.reviewed_by ? ` <span class="note">· ${esc(x.reviewed_by)}</span>` : ""}</li>`;
+  const deviations = `<h2>For the ${half ? "half-time talk" : "debrief"}</h2>
+    ${flagged.length ? `<p style="margin:4px 0"><b>Flagged by the analyst</b></p><ol class="devs">${flagged.map(devItem).join("")}</ol>` : ""}
+    ${open.length ? `<p style="margin:6px 0 4px"><b>Not called yet</b></p><ol class="devs">${open.map(devItem).join("")}</ol>` : ""}
+    ${expected.length ? `<p style="margin:6px 0 4px"><b>Set aside as expected</b></p><ol class="devs">${expected.map(devItem).join("")}</ol>` : ""}
+    ${!devs.length ? `<p>No deviations from the plan${half ? " in the first half" : ""}.</p>` : ""}`;
+  const s = d.stats[scope];
+  const pct = v => v == null ? "–" : `${Math.round(v)}%`, num = (v, n = 1) => v == null ? "–" : Number(v).toFixed(n);
+  const data = s ? (() => {
+    const A = s[us], B = s[them];
+    const rows = [["Possession", pct(A.possession_pct), pct(B.possession_pct)], ["Passes (completion)", `${A.passes} (${pct(A.pass_accuracy_pct)})`, `${B.passes} (${pct(B.pass_accuracy_pct)})`],
+      ["PPDA", num(A.ppda), num(B.ppda)], ["Field tilt", pct(A.field_tilt_pct), pct(B.field_tilt_pct)],
+      ["Shots (on target)", `${A.shots} (${A.shots_on_target})`, `${B.shots} (${B.shots_on_target})`], ["xG", num(A.xg, 2), num(B.xg, 2)],
+      ["Final-third entries", A.final_third_entries, B.final_third_entries], ["… left · centre · right", lanes(A), lanes(B)],
+      ["High regains", A.regains_high, B.regains_high], ["Counter-press regains", pct(A.counterpress_pct), pct(B.counterpress_pct)],
+      ["Line height · width · length", `${num(A.line_height_m)} · ${num(A.width_m)} · ${num(A.length_m)} m`, `${num(B.line_height_m)} · ${num(B.width_m)} · ${num(B.length_m)} m`],
+      ["Corners", A.corners, B.corners]];
+    return `<table><tr><th></th><th>${esc(m.us.code)}</th><th>${esc(m.opponent.code)}</th></tr>${rows.map(([k, x, y]) => `<tr><td>${esc(k)}</td><td class="v">${esc(String(x))}</td><td class="v">${esc(String(y))}</td></tr>`).join("")}</table>`;
+  })() : "<p>Nothing measured.</p>";
+  const plays = d.plays.filter(p => p.key && (!half || p.period === 1)).slice(0, 8);
+  const instructions = a.plan?.instructions?.length ? `<h2>Instructions</h2><ol class="instr">${a.plan.instructions.map(i => `<li>${esc(i)}</li>`).join("")}</ol>` : "";
+  const notes = a.plan?.opponent_notes ? `<h2>The opponent</h2><p style="margin:0">${esc(a.plan.opponent_notes)}</p>` : "";
+  const letterhead = `<div class="letterhead"><img src="marks/lion.svg" alt="Premier League"><div class="t"><small>Match Intelligence · Premier League</small>${esc(title)}</div>
+    <div class="r">${m.synthetic ? '<span class="tag demo">Demo data</span><br>' : '<span class="tag real">Real tracking data</span><br>'}Printed ${esc(new Date().toLocaleString())}</div></div>`;
+  $("report").innerHTML = `
+    <div class="sheet">
+      ${letterhead}
+      <div class="scoreline"><span class="club">${crestImg(m.home.code)}${esc(m.home.code)}</span><span class="goals">${m.score.home} – ${m.score.away}</span><span class="club">${esc(m.away.code)}${crestImg(m.away.code)}</span></div>
+      <div class="meta">${esc(m.home.name)} v ${esc(m.away.name)} · ${esc(m.competition)}${m.matchday ? ` · Matchday ${m.matchday}` : ""} · ${esc(m.venue || "")} · ${esc(when(m.kickoff))} · ${esc(MATCH_STATE[m.status])}</div>
+      ${plan}
+      ${deviations}
+      <div class="sign"><div>Analyst</div><div>Head coach</div></div>
+    </div>
+    <div class="sheet pagebreak">
+      ${letterhead}
+      <h2>Shape · ${esc(SCOPES[scope])}</h2>
+      <div class="shapes">
+        ${shapeFigure(d, us, "in_possession", scope, `${m.us.code} in possession`)}
+        ${shapeFigure(d, us, "out_of_possession", scope, `${m.us.code} out of possession`)}
+        ${shapeFigure(d, them, "in_possession", scope, `${m.opponent.code} in possession`)}
+      </div>
+      <p style="color:var(--muted);font-size:11px;margin:4px 0 0">Average positions by shirt number, attacking right. Dashed rings: the plan's shape at the team's own depth and width.</p>
+      <div class="two"><div><h2>Team data · ${esc(SCOPES[scope])}</h2>${data}</div><div>${instructions}${notes}</div></div>
+      <h2>Key plays</h2>
+      <div class="plays">${plays.map(p => `<figure><img data-play="${esc(p.play_id)}" alt=""><figcaption><b>${esc(p.minute)}'</b> ${GLYPHS[p.type]} ${esc(p.type_name)} · ${esc(p.team)}: ${esc(p.summary)}</figcaption></figure>`).join("") || "<p>None yet.</p>"}</div>
+      <div class="foot"><span>${esc(m.match_id)}</span><span>Measured by the club's match device; the plan and the calls are the staff's.</span></div>
+    </div>
+    <div class="sheet pagebreak">
+      ${letterhead}
+      ${setPieces(d, half)}
+      ${running(d, half)}
+      <div class="foot"><span>${esc(m.match_id)}</span><span>Set pieces into the box: corners, free kicks within 35 m, long throws. Running from the tracking, one position a second.</span></div>
+    </div>`;
+  for (const img of document.querySelectorAll("img[data-play]")) {
+    keyframe(site, img.dataset.play).then(url => { img.src = url; }).catch(() => img.closest("figure").querySelector("img").remove());
+  }
+}
+// Set pieces: each side's totals, ours by routine, and every delivery
+function setPieces(d, half) {
+  const sp = d.set_pieces, m = d.match;
+  const rows = sp.set_pieces.filter(p => !half || p.period === 1);
+  const sum = side => {
+    const r = rows.filter(p => p.side === side), judged = r.filter(p => p.first_contact);
+    const won = r.filter(p => p.first_contact === "attack").length;
+    return { n: r.length, fc: judged.length ? Math.round(100 * won / judged.length) + "%" : "–", shots: r.filter(p => p.outcome === "shot" || p.outcome === "goal").length,
+             goals: r.filter(p => p.outcome === "goal").length, xg: r.reduce((a, p) => a + (p.xg || 0), 0).toFixed(2) };
+  };
+  const us = m.team, them = us === "home" ? "away" : "home", A = sum(us), B = sum(them);
+  const byRoutine = {};
+  for (const p of rows.filter(p => p.side === us)) (byRoutine[p.routine || "No routine named"] ||= []).push(p);
+  const totals = `<table><tr><th></th><th>Deliveries</th><th>First contact won</th><th>Shots</th><th>Goals</th><th>xG</th></tr>` +
+    [[m.us.code, A], [m.opponent.code, B]].map(([c, t]) => `<tr><td>${esc(c)}</td><td class="v">${t.n}</td><td class="v">${t.fc}</td><td class="v">${t.shots}</td><td class="v">${t.goals}</td><td class="v">${t.xg}</td></tr>`).join("") + `</table>`;
+  const routines = Object.entries(byRoutine).map(([k, r]) => `<tr><td>${esc(k)}</td><td class="v">${r.length}</td>` +
+    `<td class="v">${r.filter(p => p.first_contact === "attack").length}/${r.length}</td><td class="v">${r.filter(p => p.outcome === "shot" || p.outcome === "goal").length}</td>` +
+    `<td class="v">${r.reduce((a, p) => a + (p.xg || 0), 0).toFixed(2)}</td></tr>`).join("");
+  const list = rows.map(p => `<tr><td class="v">${esc(p.minute)}'</td><td>${esc(p.team)}</td><td>${esc(SP_KINDS[p.kind] || p.kind)}${p.routine ? ` · ${esc(p.routine)}` : ""}</td>` +
+    `<td>${esc(FIRST_CONTACT[p.first_contact] || "–")}</td><td>${esc(SP_OUTCOMES[p.outcome] || p.outcome)}</td><td class="v">${p.xg ? p.xg.toFixed(2) : "–"}</td></tr>`).join("");
+  return `<h2>Set pieces${half ? " · 1st half" : ""}</h2>
+    <div class="two"><div>${totals}</div>
+    <div>${routines ? `<table><tr><th>Our routine</th><th>n</th><th>1st contact</th><th>Shots</th><th>xG</th></tr>${routines}</table>` : "<p>No routines of ours.</p>"}</div></div>
+    ${list ? `<table class="compact" style="margin-top:8px"><tr><th>Min</th><th>Team</th><th>Every delivery</th><th>1st contact</th><th>Outcome</th><th>xG</th></tr>${list}</table>` : ""}`;
+}
+// Running: every player of ours, and the drop over the last 15' against his first 30'
+function running(d, half) {
+  const team = d.physical.teams[d.match.team];
+  if (!team.players.length) return "";
+  const limit = d.adherence.targets.find(t => t.metric === "load_drop_pct")?.value ?? 18;
+  const rows = team.players.map(p => {
+    const drop = p.drop_last_15?.pct;
+    return `<tr><td>${playerLabel(p)}${p.keeper ? " (GK)" : ""}</td><td class="v">${p.minutes}'</td><td class="v">${p.distance_km.toFixed(1)}</td><td class="v">${p.m_per_min ?? "–"}</td>` +
+      `<td class="v">${p.hsr_m}</td><td class="v">${p.sprints}</td><td class="v">${p.top_speed_kmh.toFixed(1)}</td>` +
+      `<td class="v">${drop == null ? "–" : `${drop > 0 ? "−" : "+"}${Math.abs(Math.round(drop))}%${drop > limit ? ` ${chip("off_plan")}` : ""}`}</td></tr>`;
+  }).join("");
+  return `<h2>Running · ${esc(d.match.us.code)}${half ? " · so far" : ""}</h2>
+    <table><tr><th>Player</th><th>Min</th><th>km</th><th>m/min</th><th>Over 19.8 km/h, m</th><th>Sprints</th><th>Top km/h</th><th>Last 15' v first 30'</th></tr>${rows}</table>
+    <p style="color:var(--muted);font-size:11px;margin:4px 0 0">Team: ${team.distance_km} km, ${team.hsr_m.toLocaleString()} m of high-speed running, ${team.sprints} sprints. The plan allows a drop of ${esc(String(limit))}% in ground covered a minute.</p>`;
+}
+const lanes = t => ["left", "centre", "right"].map(k => t.entries_pct[k] == null ? "–" : `${t.entries_pct[k]}%`).join(" · ");
+onSignedIn = build;
+leagueReady.then(() => { if (!auth.name) signIn(); else build(); });
+</script>
+</body>
+</html>

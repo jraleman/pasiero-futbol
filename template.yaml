@@ -1,0 +1,108 @@
+# ==============================================================================
+# Template metadata, validated against schema/template.schema.json
+# ==============================================================================
+schema_version: 1
+name: brighton-match-analysis
+version: 0.1.0
+title: Seagulls Match Analysis · the game plan, the press, set pieces and running, live
+description: >-
+  A demo for Brighton & Hove Albion (Premier League): the club's match device measures
+  every match every 5 minutes (both teams' data, their formation and shape in
+  and out of possession, the pass network, every set piece delivered into the
+  box with its routine and first contact, and every player's running) and
+  finds the technical plays (goals, shots, saves, set pieces, high regains,
+  counter-attacks, build-ups, presses played through, fouls won, formation
+  changes). The staff write a game plan per match (formations and targets, set
+  pieces and the running drop among them); when a target is off the plan for
+  15 minutes, a deviation goes to the analyst, who flags it for the bench or
+  sets it aside as expected. An ingest service keeps it all in SQLite, serves
+  the analysis room (the plan target by target, the shape, the set pieces,
+  every player's running, every play replayed on a 2D pitch), the plan editor,
+  a season page (set-piece routines for and against, the squad's running per
+  90) and printable reports, and copies everything to InfluxDB and MQTT. A
+  vision pipeline (on demand, CPU) finds plays on real footage, posts
+  scouting matches, and draws its detections over the Video tab. Grafana shows
+  the match and the season; go2rtc serves the cameras; a local LLM answers the
+  staff's questions from the numbers; n8n tells the bench about key
+  deviations and emails the reports. A match engine plays the season,
+  measured by the same analytics as one real tracked match, so it works with
+  no hardware.
+layers: [iot, ai, extras]
+tags: [football, soccer, tactics, game-plan, formation, set-pieces, physical, tracking, computer-vision, analytics, video, go2rtc, influxdb, grafana, mqtt, ollama, llm, n8n, email]
+maintainers:
+  - jraleman
+
+services:
+  - name: ingest
+    layer: iot
+    description: Team contract 0.1 (fixtures, windows with running and set pieces, plays, heartbeat), the game plans and their deviations, the analysis room, the plan editor, the season page, the reports, the proposal and deck, and the agent API, on SQLite
+    ports: [8090]
+  - name: mqtt
+    layer: iot
+    description: Eclipse Mosquitto MQTT broker; the ingest service publishes <MQTT_TOPIC_ROOT>/<site>/…
+    ports: [1883, 9001]
+  - name: influxdb
+    layer: iot
+    description: InfluxDB 2 time-series database (windows, players' running, plan checks, plays, deviations, calls, the device's health)
+    ports: [8086]
+  - name: grafana
+    layer: iot
+    description: Provisioned InfluxDB datasource and the match analysis dashboard
+    ports: [3000]
+  - name: simulator
+    layer: iot
+    description: "Demo club device: a match engine plays the season, the device's analytics measure it, and it posts past matches and a live one (compose profile \"demo\")"
+    profile: demo
+  - name: agent
+    layer: ai
+    description: Ollama API for p4n4-dashboard's Agent tab, with tools that query the ingest service and InfluxDB
+    ports: [11434]
+  - name: ollama
+    layer: ai
+    description: Local LLM (OLLAMA_MODEL, default gemma4:e2b), reached through the agent
+  - name: n8n
+    layer: ai
+    description: Tells the staff about key deviations during a match; emails the half-time and match reports
+    ports: [5678]
+  - name: mailpit
+    layer: ai
+    description: Local inbox catching every email n8n sends (compose profile "mailpit")
+    ports: [8025]
+    profile: mailpit
+  - name: vision
+    layer: ai
+    description: "matchvision on recorded footage (CPU, on demand): the plays the models find and the Video tab's overlay, run by extras/scripts/clips.py"
+    profile: vision
+  - name: video
+    layer: extras
+    description: go2rtc serving the tactical and broadcast cameras as MJPEG (synthetic cameras drawing the demo's live match without them), and the footage cameras
+    ports: [1984]
+
+data:
+  topics:
+    - pattern: brighton/<site-id>/window
+      payload: contract 0.1 window JSON, without positions and pass network
+    - pattern: brighton/<site-id>/play/<type>
+      payload: contract 0.1 play JSON, without its track
+    - pattern: brighton/<site-id>/deviation
+      payload: a deviation opening or closing
+    - pattern: brighton/<site-id>/review
+      payload: an analyst's call (deviation_id, decision, previous, by, review_s)
+    - pattern: brighton/<site-id>/plan
+      payload: a game plan saved
+    - pattern: brighton/<site-id>/fixture
+      payload: contract 0.1 fixture JSON (status, period, score)
+    - pattern: brighton/<site-id>/heartbeat
+      payload: contract 0.1 heartbeat JSON
+  influxdb:
+    bucket: raw_telemetry
+    measurement: sensor_data
+    tags: [device, sensor]
+    # sensor_data holds the device's heartbeat numbers; also team_window,
+    # player_run, plan_check, team_play, plan_deviation, deviation_review,
+    # team_fixture and team_node (see iot/ingest/sinks.py)
+  archive:
+    - path: iot/data/ingest/ingest.db
+      format: sqlite
+
+smoke_test: tests/smoke.sh

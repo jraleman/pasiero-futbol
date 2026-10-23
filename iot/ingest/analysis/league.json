@@ -1,0 +1,32 @@
+{
+  "_about": "The 2026-27 Premier League as the demo shows it: its 20 clubs (West Ham, Burnley and Wolves down; Coventry City, Ipswich Town and Hull City up), each club's code, city, ground, kit colours and crest. Crests are Wikipedia's copies of the clubs' logos, for a private pitch to Brighton & Hove Albion only. Kit colours are the clubs' colours (the first the home shirt, the second a change kit): unverified against this season's kits.",
+  "competition": "Premier League 2026-27",
+  "season": { "name": "Premier League 2026-27", "start": "2026-08-21", "end": "2027-05-30" },
+  "club": "BHA",
+  "league": { "name": "Premier League", "short": "PL" },
+  "sites": {
+    "brighton": { "name": "Brighton & Hove Albion", "ground": "American Express Stadium", "city": "Brighton" }
+  },
+  "clubs": {
+    "BHA": { "name": "Brighton & Hove Albion", "city": "Brighton", "ground": "American Express Stadium", "kit": ["#0057B8", "#F2F2F2"] },
+    "ARS": { "name": "Arsenal", "city": "London", "ground": "Emirates Stadium", "kit": ["#EF0107", "#F2F2F2"] },
+    "AVL": { "name": "Aston Villa", "city": "Birmingham", "ground": "Villa Park", "kit": ["#670E36", "#95BFE5"] },
+    "BOU": { "name": "Bournemouth", "city": "Bournemouth", "ground": "Vitality Stadium", "kit": ["#DA291C", "#111111"] },
+    "BRE": { "name": "Brentford", "city": "Brentford, London", "ground": "Gtech Community Stadium", "kit": ["#E30613", "#111111"] },
+    "CHE": { "name": "Chelsea", "city": "London", "ground": "Stamford Bridge", "kit": ["#034694", "#F2F2F2"] },
+    "COV": { "name": "Coventry City", "city": "Coventry", "ground": "Coventry Building Society Arena", "kit": ["#59B1E3", "#1B2A4A"] },
+    "CRY": { "name": "Crystal Palace", "city": "London", "ground": "Selhurst Park", "kit": ["#1B458F", "#F2F2F2"] },
+    "EVE": { "name": "Everton", "city": "Liverpool", "ground": "Hill Dickinson Stadium", "kit": ["#003399", "#F2F2F2"] },
+    "FUL": { "name": "Fulham", "city": "London", "ground": "Craven Cottage", "kit": ["#F2F2F2", "#111111"] },
+    "HUL": { "name": "Hull City", "city": "Hull", "ground": "MKM Stadium", "kit": ["#F5A12D", "#111111"] },
+    "IPS": { "name": "Ipswich Town", "city": "Ipswich", "ground": "Portman Road", "kit": ["#0044A9", "#F2F2F2"] },
+    "LEE": { "name": "Leeds United", "city": "Leeds", "ground": "Elland Road", "kit": ["#F2F2F2", "#1D428A"] },
+    "LIV": { "name": "Liverpool", "city": "Liverpool", "ground": "Anfield", "kit": ["#C8102E", "#F2F2F2"] },
+    "MCI": { "name": "Manchester City", "city": "Manchester", "ground": "Etihad Stadium", "kit": ["#6CABDD", "#1C2C5B"] },
+    "MUN": { "name": "Manchester United", "city": "Manchester", "ground": "Old Trafford", "kit": ["#DA291C", "#F2F2F2"] },
+    "NEW": { "name": "Newcastle United", "city": "Newcastle", "ground": "St James' Park", "kit": ["#241F20", "#F2F2F2"] },
+    "NFO": { "name": "Nottingham Forest", "city": "Nottingham", "ground": "City Ground", "kit": ["#DD0000", "#F2F2F2"] },
+    "SUN": { "name": "Sunderland", "city": "Sunderland", "ground": "Stadium of Light", "kit": ["#EB172B", "#111111"] },
+    "TOT": { "name": "Tottenham Hotspur", "city": "London", "ground": "Tottenham Hotspur Stadium", "kit": ["#F2F2F2", "#132257"] }
+  }
+}

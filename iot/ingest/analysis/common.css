@@ -1,0 +1,130 @@
+/* Shared by the analysis room, the plan editor and the reports. */
+@font-face { font-family: "Barlow Condensed"; font-weight: 600; src: url(fonts/BarlowCondensed-SemiBold.ttf); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 700; src: url(fonts/BarlowCondensed-Bold.ttf); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 800; src: url(fonts/BarlowCondensed-ExtraBold.ttf); }
+@font-face { font-family: Barlow; font-weight: 400; src: url(fonts/Barlow-Regular.ttf); }
+@font-face { font-family: Barlow; font-weight: 500; src: url(fonts/Barlow-Medium.ttf); }
+@font-face { font-family: Barlow; font-weight: 600; src: url(fonts/Barlow-SemiBold.ttf); }
+@font-face { font-family: "Plex Mono"; font-weight: 400; src: url(fonts/IBMPlexMono-Regular.ttf); }
+@font-face { font-family: "Plex Mono"; font-weight: 500; src: url(fonts/IBMPlexMono-Medium.ttf); }
+
+:root {
+  color-scheme: dark;
+  /* The analysis room is dark, in the Premier League's purple: the screens and the pitch are what you look at */
+  --bg: #12001a;
+  --panel: #1e0629;
+  --raise: #2a0b37;
+  --line: #3a1349;
+  --line-2: #4f1d62;
+  --ink: #f7f2f8;
+  --ink-2: #d6c6db;
+  --muted: #a48dac;
+  /* The league's identity, never a data colour: its purple (lifted on dark, so the score stands out), its pink for the few marks that must stand out on the
+     pitch (the plan's shape, the ringed players, the line), and its gradient along the top of every page */
+  --brand: #6a0f73;
+  --highlight: #ff2882;
+  --bar: linear-gradient(90deg, #04f5ff, #00ff85 32%, #e90052 68%, #963cff);
+  --accent: #04f5ff;
+  --on-accent: #12001a;
+  /* The two sides in charts: validated categorical steps (us blue, them aqua), always labelled */
+  --us: #3987e5;
+  --them: #199e70;
+  /* Status: good, warning, critical, each with an icon and a word */
+  --on: #0ca30c;
+  --drift: #fab219;
+  --off: #d03b3b;
+  --nodata: #6c7d70;
+  --pitch: #12301c;
+  --chalk: rgba(226, 236, 228, .38);
+  --chalk-2: rgba(226, 236, 228, .14);
+  --mono: "Plex Mono", ui-monospace, monospace;
+  --display: "Barlow Condensed", Barlow, system-ui, sans-serif;
+}
+@media (prefers-color-scheme: light) {
+  :root:where(:not([data-theme="dark"])) {
+    color-scheme: light;
+    --bg: #f7f4f8;
+    --panel: #ffffff;
+    --raise: #f1ebf3;
+    --line: #e3d9e6;
+    --line-2: #cfbfd5;
+    --ink: #1f0024;
+    --ink-2: #4a3150;
+    --muted: #725d79;
+    --brand: #37003c;
+    --highlight: #c4005f;
+    --accent: #37003c;
+    --on-accent: #ffffff;
+    --us: #2a78d6;
+    --them: #1baf7a;
+    --pitch: #2e6b3d;
+    --chalk: rgba(255, 255, 255, .55);
+    --chalk-2: rgba(255, 255, 255, .18);
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+/* The league's gradient along the top of every page */
+body::before { content: ""; display: block; height: 6px; background: var(--bar); }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 15px/1.45 Barlow, system-ui, sans-serif;
+}
+button, input, textarea, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mono, .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+/* a synthetic player's fictional name, after his shirt number */
+.pname { color: var(--muted); white-space: nowrap; }
+/* a player's milestone in the Running table (over 30 km/h, 5 and 10 km) */
+.tag.mile { font-size: 10.5px; padding: 0 5px; white-space: nowrap; }
+h1, h2, h3 { font-family: var(--display); letter-spacing: .01em; }
+
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px 1px 6px; border-radius: 999px; font-size: 12px;
+        font-weight: 600; border: 1px solid currentColor; white-space: nowrap; line-height: 1.5; }
+.chip b { font-family: var(--mono); font-size: 11px; }
+.chip.on_plan { color: var(--on); }
+.chip.drifting { color: var(--drift); }
+.chip.off_plan { color: var(--off); }
+.chip.no_data { color: var(--muted); }
+.tag { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--ink-2); white-space: nowrap; }
+.tag.demo { border-color: var(--drift); color: var(--drift); }
+.tag.real { border-color: var(--us); color: var(--us); }
+.tag.key { border-color: var(--accent); color: var(--accent); }
+.crest-none { display: inline-grid; place-items: center; border-radius: 50%; background: var(--raise); border: 1px solid var(--line-2);
+              font: 700 11px var(--display); color: var(--ink-2); }
+
+/* the pitch */
+.pitch { background: var(--pitch); border-radius: 8px; padding: 8px; position: relative; }
+.pitch svg { display: block; width: 100%; height: auto; }
+.pitch .lines { stroke: var(--chalk); stroke-width: .22; fill: none; }
+.pitch .net { stroke: var(--chalk); stroke-width: .18; fill: var(--chalk-2); }
+.pitch .third { stroke: var(--chalk-2); stroke-width: .2; stroke-dasharray: .8 .8; }
+.pitch .player text { font: 600 1.65px Barlow; text-anchor: middle; dominant-baseline: central; }
+.pitch .player .disc { stroke: rgba(0, 0, 0, .55); stroke-width: .18; }
+.pitch .player .ring { fill: none; stroke: var(--highlight); stroke-width: .38; }
+.pitch .player .role { font: 600 1.6px Barlow; fill: #fff; paint-order: stroke; stroke: rgba(0, 0, 0, .7); stroke-width: .5; }
+.pitch .ball circle { fill: #fff; stroke: #0b130e; stroke-width: .18; }
+.pitch .ghost { fill: none; stroke: var(--highlight); stroke-width: .22; stroke-dasharray: .7 .5; opacity: .85; }
+.pitch .ghost-label { font: 600 1.7px var(--mono); fill: var(--highlight); }
+.pitch .link { stroke: #fff; stroke-linecap: round; }
+.pitch .dir { fill: #fff; opacity: .7; font: 600 1.9px Barlow; }
+.pitch .linemark { stroke: var(--highlight); stroke-width: .3; stroke-dasharray: 1 .6; }
+
+dialog { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--ink); padding: 22px; }
+dialog::backdrop { background: rgba(8, 6, 6, .72); }
+#signin { width: min(420px, calc(100vw - 32px)); }
+#signin img { display: block; margin-bottom: 6px; }
+#signin h2 { margin: 0 0 4px; font: 800 26px var(--display); text-transform: uppercase; }
+#signin p { margin: 0 0 14px; color: var(--ink-2); }
+#signin label { display: grid; gap: 4px; margin-bottom: 12px; font-size: 13px; color: var(--ink-2); }
+#signin input { background: var(--raise); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+#signin button { background: var(--accent); color: var(--on-accent); border: 0; border-radius: 6px; padding: 9px 18px; font-weight: 600; cursor: pointer; }
+#signin .error { color: var(--off); font-size: 13px; min-height: 1.2em; margin: 0 0 8px; }
+
+/* the tooltip charts share */
+.tip { position: fixed; z-index: 10; pointer-events: none; background: var(--panel); border: 1px solid var(--line-2); border-radius: 6px;
+       padding: 6px 9px; font-size: 12.5px; box-shadow: 0 6px 20px rgba(0, 0, 0, .35); display: none; max-width: 280px; }
+.tip b { font-family: var(--mono); font-weight: 500; }
+.tip .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
