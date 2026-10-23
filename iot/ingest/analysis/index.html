@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="common.css">
 <style>
 /* ── the score bug ─────────────────────────────────────────────────────────── */
-.bug { display: grid; grid-template-columns: auto auto minmax(170px, 1fr) auto; align-items: center; gap: 22px;
+.bug { display: grid; grid-template-columns: auto max-content minmax(0, 1fr) max-content; align-items: center; gap: 22px;
        padding: 10px 20px; background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
 .brand { display: flex; align-items: center; gap: 12px; padding-right: 18px; border-right: 1px solid var(--line); height: 48px; }
 .brand img { width: 42px; height: 46px; object-fit: contain; display: block; }
@@ -23,7 +23,9 @@
 .score .goals { display: flex; align-items: center; gap: 10px; padding: 0 16px; font: 800 32px/1 var(--display); background: var(--brand); color: #fff; }
 .score .goals span { opacity: .55; font-weight: 600; }
 .matchinfo { min-width: 0; }
-.matchinfo .state { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; gap: 8px; align-items: center; }
+.matchinfo .state { font-weight: 600; white-space: nowrap; display: flex; gap: 8px; align-items: center; }
+.matchinfo .state > span:not(.tag) { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.matchinfo .state .tag { flex: none; }   /* Demo data is never cut */
 .matchinfo .state .live { color: var(--off); }
 .matchinfo .meta { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .who { display: flex; align-items: center; gap: 10px; }
@@ -32,6 +34,20 @@
 .who a.btn:hover { border-color: var(--accent); }
 .who .analyst { color: var(--ink-2); font-size: 13px; white-space: nowrap; }
 .who .analyst b { color: var(--ink); font-weight: 600; }
+.short { display: none; }
+
+/* Narrower than the whole bar (about 1900 px): the lion without its words, the clubs' codes
+   without their names (on hover), shorter labels. Narrower still, the controls on a row of their own. */
+@media (max-width: 1800px) {
+  .bug { gap: 16px; }
+  .brand span, .score .club small, .long { display: none; }
+  .short { display: inline; }
+  .score .club { min-width: 0; }
+}
+@media (max-width: 1400px) {
+  .bug { grid-template-columns: auto max-content minmax(0, 1fr); row-gap: 8px; }
+  .who { grid-column: 1 / -1; justify-content: flex-end; }
+}
 
 /* ── layout ────────────────────────────────────────────────────────────────── */
 .room { display: grid; grid-template-columns: minmax(0, 1fr) 390px; gap: 16px; padding: 16px 20px 28px; align-items: start; }
@@ -233,8 +249,8 @@ table.run .num { font-family: var(--mono); }
   <div class="who">
     <select id="match" aria-label="Match"></select>
     <a class="btn" id="plan-link">Game plan</a>
-    <a class="btn" id="half-link" target="_blank" rel="opener">Half-time report</a>
-    <a class="btn" id="full-link" target="_blank" rel="opener">Match report</a>
+    <a class="btn" id="half-link" target="_blank" rel="opener"><span class="long">Half-time report</span><span class="short">Half time</span></a>
+    <a class="btn" id="full-link" target="_blank" rel="opener"><span class="long">Match report</span><span class="short">Full time</span></a>
     <a class="btn" id="season-link" href="season.html">Season</a>
     <span class="analyst" id="analyst"></span>
   </div>
@@ -421,7 +437,7 @@ function renderBug() {
     const res = x.result ? ` ${x.result} ${x.score[x.team]}–${x.score[x.team === "home" ? "away" : "home"]}` : x.status === "scheduled" ? "" : ` · ${MATCH_STATE[x.status]}`;
     return `<option value="${esc(x.match_id)}" ${x.match_id === state.matchId ? "selected" : ""}>${esc(x.kickoff.slice(5, 10))} ${venue} ${esc(opp)}${esc(res)}${x.pending ? ` · ${x.pending} to call` : ""}</option>`;
   }).join("");
-  $("analyst").innerHTML = `Analyst: <b>${esc(auth.name)}</b> <a href="#" id="who">change</a>`;
+  $("analyst").innerHTML = `<span class="long">Analyst: </span><b>${esc(auth.name)}</b> <a href="#" id="who">change</a>`;
   $("who").onclick = e => { e.preventDefault(); signIn(); };
   const m = state.data?.match;
   for (const id of ["plan-link", "half-link", "full-link", "plan-edit"]) $(id).hidden = !m;
@@ -431,7 +447,7 @@ function renderBug() {
   $("half-link").href = `report.html?part=half${hash}`;
   $("full-link").href = `report.html?part=full${hash}`;
   const k = kits(m.home.code, m.away.code);
-  const side = (team, colour) => `<div class="club">${crestImg(team.code)}<div><span class="code">${esc(team.code)}</span>` +
+  const side = (team, colour) => `<div class="club" title="${esc(team.name)}">${crestImg(team.code)}<div><span class="code">${esc(team.code)}</span>` +
     `<small>${esc(team.name)}</small><i class="kit" style="background:${colour}"></i></div></div>`;
   $("score").innerHTML = side(m.home, k.home) + `<div class="goals">${m.score.home}<span>–</span>${m.score.away}</div>` + side(m.away, k.away);
   const live = m.status === "live";
@@ -439,7 +455,7 @@ function renderBug() {
     `${live && PERIOD[m.period] ? ` · ${esc(PERIOD[m.period])}` : ""}</span>` +
     (m.synthetic ? `<span class="tag demo">Demo data</span>` : m.scouting ? `<span class="tag real">Scouting footage</span>`
       : `<span class="tag real">Real tracking data</span>`);
-  $("meta").textContent = [m.competition, m.matchday ? `Matchday ${m.matchday}` : null, m.venue, when(m.kickoff)].filter(Boolean).join(" · ");
+  $("meta").textContent = $("meta").title = [m.competition, m.matchday ? `Matchday ${m.matchday}` : null, m.venue, when(m.kickoff)].filter(Boolean).join(" · ");
   document.title = `${scoreText(m)} · Match Intelligence`;
 }
 
