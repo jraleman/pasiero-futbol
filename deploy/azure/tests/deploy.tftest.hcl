@@ -65,7 +65,11 @@ mock_provider "http" {
   }
 }
 
-mock_provider "time" {}
+mock_provider "time" {
+  mock_resource "time_static" {
+    defaults = { rfc3339 = "2026-10-23T09:41:00Z" }
+  }
+}
 
 variables {
   ssh_public_key_path = "tests/fixtures/id_test.pub"
@@ -123,6 +127,18 @@ run "defaults" {
     condition     = length(azurerm_dev_test_global_vm_shutdown_schedule.main) == 0 && length(azurerm_user_assigned_identity.github) == 0
     error_message = "no nightly shutdown and no GitHub identity unless asked"
   }
+  assert {
+    condition = (azurerm_consumption_budget_resource_group.main[0].amount == 100 && azurerm_consumption_budget_resource_group.main[0].time_grain == "Monthly"
+      && azurerm_consumption_budget_resource_group.main[0].resource_group_id == azurerm_resource_group.main.id
+    && azurerm_consumption_budget_resource_group.main[0].time_period[0].start_date == "2026-10-01T00:00:00Z")
+    error_message = "a monthly budget of 100 on the resource group, from the 1st of the month it was made in"
+  }
+  assert {
+    condition = (toset([for n in azurerm_consumption_budget_resource_group.main[0].notification : "${n.threshold_type} ${n.threshold}"])
+      == toset(["Actual 50", "Actual 80", "Actual 100", "Forecasted 100"])
+    && alltrue([for n in azurerm_consumption_budget_resource_group.main[0].notification : n.contact_roles == tolist(["Owner"])]))
+    error_message = "the owners emailed at 50%, 80% and 100% spent, and on a forecast over 100%"
+  }
 }
 
 run "options" {
@@ -134,6 +150,7 @@ run "options" {
     dns_label       = "pl-match"
     ssh_source_cidr = "198.51.100.0/24"
     repo_url        = "https://github.com/someone/bh-albion"
+    budget          = null
   }
 
   assert {
@@ -156,6 +173,33 @@ run "options" {
     condition     = strcontains(local.cloud_init, "REPO_URL=https://github.com/someone/bh-albion")
     error_message = "the VM clones repo_url"
   }
+  assert {
+    condition     = length(azurerm_consumption_budget_resource_group.main) == 0
+    error_message = "budget = null: no budget"
+  }
+}
+
+run "budget" {
+  command = plan
+  variables {
+    budget        = 250
+    budget_emails = ["coach@example.com"]
+  }
+
+  assert {
+    condition = (azurerm_consumption_budget_resource_group.main[0].amount == 250 && alltrue([
+      for n in azurerm_consumption_budget_resource_group.main[0].notification : n.contact_emails == tolist(["coach@example.com"])
+    ]))
+    error_message = "budget and budget_emails"
+  }
+}
+
+run "bad_budget" {
+  command = plan
+  variables {
+    budget = 0
+  }
+  expect_failures = [var.budget]
 }
 
 run "bad_shutdown_time" {

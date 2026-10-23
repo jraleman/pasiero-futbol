@@ -11,6 +11,7 @@ The whole stack on one Azure VM, as the club's match device would run it, behind
 | **Azure OpenAI** (`gpt-4.1-mini`, GlobalStandard) | The team of agents' model (`ai/agent/team.py`). Keys are off (`openai_keys`, for your own machine, turns them on): the VM signs in with Microsoft Entra ID, with the *Cognitive Services OpenAI User* role only |
 | **Azure Machine Learning** (a workspace, a CPU cluster that scales to zero) | Trains the shirt-number model (`ai/vision/shirts/`) |
 | **DevTest Labs schedule** (optional) | Stops the VM every night (`shutdown_time`) |
+| **Cost Management budget** | A monthly budget on the resource group (`budget`, 100 by default): emails at 50%, 80% and 100% spent, and when the month's forecast passes 100% |
 | **User-assigned identity** with a GitHub federated credential (optional) | The deploy workflow signs in with OIDC (no secret in GitHub) and may only run commands on this VM |
 
 ```
@@ -57,15 +58,19 @@ The first deploy builds the dashboard's image (Flutter, about 10 minutes) and pu
 
 ## Cost
 
-Roughly, at pay-as-you-go prices in UK South (check the [pricing calculator](https://azure.microsoft.com/pricing/calculator/)):
+At UK South's pay-as-you-go list prices ([Azure's retail prices](https://prices.azure.com/api/retail/prices), October 2026; check the [pricing calculator](https://azure.microsoft.com/pricing/calculator/)):
 
 | | |
 |---|---|
-| The VM, running | about $0.30 an hour (about $210 a month); stopped (deallocated), nothing |
-| Its disk (128 GB Premium SSD), the IP | about $25 a month, running or not |
-| Azure OpenAI | per token: a recap or an answer is well under a cent |
-| Azure ML | the cluster only while a job runs (an `F8s_v2` is about $0.40 an hour; a training run takes about 2 hours); the workspace's storage and logs, pennies |
+| The VM (`E4s_v5`), running | $0.296 an hour: about $7 a day, $216 a month; stopped (deallocated), nothing |
+| Its disk (128 GB Premium SSD, P10), the IP | $23.85 and $3.65 a month, running or not |
+| Azure OpenAI (`gpt-4.1-mini`, GlobalStandard) | $0.40 a million tokens in, $1.60 out: a recap or an answer is well under a cent |
+| Azure ML | the cluster only while a job runs (an `F8s_v2` is $0.40 an hour; a full training run takes about 2 hours); the container registry it makes on its first job, $0.17 a day; the workspace's storage and logs, pennies |
 | Key Vault | pennies |
+
+Two weeks with the VM up day and night come to about $120; a month, about $250.
+
+**The budget.** Pay-as-you-go has no spending limit, so `apply` also makes a monthly budget on the resource group, which covers everything above, Azure ML's registry included. It emails the subscription's owners (and `budget_emails`) at 50%, 80% and 100% of `budget` spent, and as soon as the month's forecast passes it. It only warns: nothing stops. The amount is in your billing currency; at the default of 100, a VM up all month sets off the 50% email in about a week. Cost data reaches Azure several hours late, so the emails do too.
 
 `shutdown_time = "2300"` stops the VM every night (start it again from the portal or `az vm start`); don't set it while it's being judged. `terraform destroy` removes everything (Key Vault and Azure OpenAI are purged, so the names can be used again).
 
@@ -82,4 +87,4 @@ Roughly, at pay-as-you-go prices in UK South (check the [pricing calculator](htt
 terraform init -backend=false && terraform test     # mock providers: no Azure needed
 ```
 
-They check the VM (size, image, disk), the address, that the NSG opens only SSH from your address and the web ports, that cloud-init says where the VM is and holds no secret, the Key Vault with RBAC and its ten secrets, the VM identity's two roles, Azure OpenAI without keys, the Azure ML cluster that scales to zero, and the options (no ML, the GitHub identity on main only, the nightly shutdown, a DNS label, the repository URL). CI runs them with `fmt` and `validate`.
+They check the VM (size, image, disk), the address, that the NSG opens only SSH from your address and the web ports, that cloud-init says where the VM is and holds no secret, the Key Vault with RBAC and its ten secrets, the VM identity's two roles, Azure OpenAI without keys, the Azure ML cluster that scales to zero, the budget's four warnings, and the options (no ML, the GitHub identity on main only, the nightly shutdown, a DNS label, the repository URL, the budget's amount and emails, no budget). CI runs them with `fmt` and `validate`.

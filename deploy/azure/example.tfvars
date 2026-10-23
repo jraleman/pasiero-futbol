@@ -9,3 +9,5 @@ subscription_id = "00000000-0000-0000-0000-000000000000" # az account show --que
 # location      = "uksouth"
 # shutdown_time = "2300"                                # stop the VM every night (not while judging)
 # ml            = false                                 # no Azure ML workspace
+# budget        = 100                                   # a month, in your billing currency (null: none)
+# budget_emails = ["you@example.com"]                   # besides the subscription's owners

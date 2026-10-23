@@ -32,6 +32,7 @@ provider "azurerm" {
   resource_providers_to_register = [
     "Microsoft.CognitiveServices",
     "Microsoft.Compute",
+    "Microsoft.Consumption",
     "Microsoft.ContainerRegistry",
     "Microsoft.DevTestLab",
     "Microsoft.Insights",

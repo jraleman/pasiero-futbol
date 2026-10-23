@@ -93,6 +93,23 @@ variable "shutdown_timezone" {
   default     = "GMT Standard Time"
 }
 
+variable "budget" {
+  description = "Monthly budget for the resource group, in the billing currency: emails at 50%, 80% and 100% spent, and on a forecast over 100%. Null: no budget."
+  type        = number
+  default     = 100
+
+  validation {
+    condition     = var.budget == null || try(var.budget > 0, false)
+    error_message = "budget is an amount above 0, or null."
+  }
+}
+
+variable "budget_emails" {
+  description = "Who gets the budget's emails, besides the subscription's owners."
+  type        = list(string)
+  default     = []
+}
+
 # ── Azure OpenAI ────────────────────────────────────────────────────────────────
 
 variable "openai_model" {
