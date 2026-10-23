@@ -22,3 +22,6 @@ __pycache__/
 ai/vision/models/
 
 static-demo/
+
+# The shirt-number model's training runs (ai/vision/shirts/train.py --out)
+ai/vision/shirts/outputs/

@@ -1,0 +1,19 @@
+# The Azure ML job's environment (job.yml): CPU PyTorch, ONNX, and MLflow for the run's metrics
+name: shirt-numbers
+channels: [conda-forge]
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      - --index-url https://download.pytorch.org/whl/cpu
+      - --extra-index-url https://pypi.org/simple
+      - torch==2.14.1+cpu
+      - torchvision==0.29.1+cpu
+      - onnx==1.23.2
+      - onnxscript==0.7.2
+      - onnxruntime==1.31.0
+      - opencv-python-headless==5.0.0.93
+      - pillow==13.0.0
+      - numpy==2.5.4
+      - mlflow==3.17.2
+      - azureml-mlflow==1.62.0.post6

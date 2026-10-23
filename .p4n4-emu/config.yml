@@ -1,0 +1,9 @@
+# This project's shares of the emulated device (p4n4-emu up --profile nuc, as on the Azure VM):
+# fractions of its CPU and memory, over p4n4-emu's defaults. The match engine and the ingest
+# service measure every match 5 times a second, and the agent loads Agent Framework, Azure's
+# SDKs and the OpenAI client; the defaults ("*": 0.21 cores, 349 MB for the agent) are a sensor
+# service's.
+shares:
+  ingest: {cpu: 0.1}
+  simulator: {cpu: 0.1}
+  agent: {cpu: 0.08, memory: 0.05}

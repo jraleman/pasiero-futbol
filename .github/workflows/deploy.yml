@@ -1,0 +1,38 @@
+# Deploys main to the Azure VM: signs in to Azure with OIDC as the identity Terraform made for
+# this repository (deploy/azure/github.tf; no secret in GitHub), then runs bh-deploy on the VM,
+# which pulls main and runs deploy/azure/vm/deploy.sh. Needs the repository variables from
+# `terraform output github`; without them it's skipped.
+name: deploy
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  vm:
+    if: vars.AZURE_CLIENT_ID != '' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: bh-deploy on the VM
+        run: |
+          out=$(az vm run-command invoke -g "${{ vars.AZURE_RESOURCE_GROUP }}" -n "${{ vars.AZURE_VM }}" \
+            --command-id RunShellScript --scripts 'sudo -iu p4n4 bh-deploy; echo "exit=$?"' \
+            --query 'value[0].message' -o tsv)
+          printf '%s\n' "$out" | tail -n 60
+          printf '%s\n' "$out" | grep -q '^exit=0$'

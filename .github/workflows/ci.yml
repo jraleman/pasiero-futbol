@@ -1,0 +1,55 @@
+# Every push and pull request: the tests that need no Docker, the generated files, the Terraform.
+# The whole-stack smoke test (tests/smoke.sh) runs locally.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: The device, the ingest service, the agent's tools
+        run: |
+          python3 tests/test_analytics.py
+          python3 tests/test_ingest.py
+          python3 tests/test_local_tools.py
+      - name: The team of agents (Microsoft Agent Framework, a scripted model)
+        run: |
+          pip install -q -r ai/agent/requirements.txt
+          python3 tests/test_team.py
+      - name: The shirt-number model's code (CPU PyTorch, ONNX)
+        run: |
+          pip install -q --index-url https://download.pytorch.org/whl/cpu torch==2.14.1+cpu torchvision==0.29.1+cpu
+          pip install -q numpy==2.5.4 opencv-python-headless==5.0.0.93 pillow==13.0.0 onnx==1.23.2 onnxscript==0.7.2 onnxruntime==1.31.0
+          python3 tests/test_shirts.py
+      - name: Generated files are up to date
+        run: |
+          python3 iot/scripts/build_dashboard.py
+          python3 ai/config/n8n/build.py
+          python3 iot/scripts/squads.py --check
+          git diff --exit-code
+
+  terraform:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: deploy/azure
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false -input=false
+      - run: terraform validate
+      - name: terraform test (mock providers, no Azure)
+        run: terraform test

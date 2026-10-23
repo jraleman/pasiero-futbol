@@ -1,0 +1,47 @@
+# HTTPS on the Azure VM (compose.yml): one Let's Encrypt certificate for {$SITE}, on two ports.
+# Only what the judges use is reachable; everything else the stack publishes is blocked by the
+# NSG (deploy/azure/main.tf).
+
+# The dashboard, and Grafana through it (/grafana/)
+{$SITE} {
+	encode zstd gzip
+	header Strict-Transport-Security "max-age=31536000"
+	reverse_proxy p4n4-dashboard:8080 {
+		# The agents' answers stream as they're written
+		flush_interval -1
+	}
+}
+
+# The analysis room and its API (the staff token), the inbox, the cameras
+{$SITE}:8443 {
+	encode zstd gzip
+	header Strict-Transport-Security "max-age=31536000"
+	redir / /analysis/
+	redir /mail /mail/
+
+	# Mailpit, at MP_WEBROOT /mail/, behind its own login (MP_UI_AUTH)
+	handle /mail/* {
+		reverse_proxy p4n4-mailpit:8025
+	}
+
+	# go2rtc: the two streams the dashboard shows, nothing else (its API can change its config)
+	@cameras {
+		method GET
+		path /cameras/api/stream.mjpeg /cameras/api/frame.jpeg
+	}
+	handle @cameras {
+		uri strip_prefix /cameras
+		reverse_proxy p4n4-video:1984 {
+			flush_interval -1
+		}
+	}
+	handle /cameras/* {
+		respond 404
+	}
+
+	handle {
+		reverse_proxy p4n4-ingest:8080 {
+			flush_interval -1
+		}
+	}
+}

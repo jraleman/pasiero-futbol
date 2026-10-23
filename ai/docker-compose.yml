@@ -175,6 +175,9 @@ services:
       - "8025:8025"   # web inbox
     environment:
       MP_MAX_MESSAGES: 5000
+      # Behind a proxy's path (/mail/ on the Azure VM), and a login there
+      MP_WEBROOT: ${MAILPIT_WEBROOT:-/}
+      MP_UI_AUTH: ${MAILPIT_UI_AUTH:-}
       TZ: ${TZ:-UTC}
     healthcheck:
       test: ["CMD", "/mailpit", "readyz"]

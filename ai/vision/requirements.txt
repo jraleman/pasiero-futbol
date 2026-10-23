@@ -2,3 +2,5 @@
 ultralytics==8.4.178
 opencv-python-headless>=4.10,<6
 numpy>=1.26,<3
+# Our shirt-number model (shirt_numbers.onnx, trained on Azure ML: shirts/)
+onnxruntime==1.31.0

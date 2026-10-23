@@ -1,0 +1,79 @@
+# The stack's public front on the Azure VM (deploy.sh starts it after the iot, ai and extras
+# stacks): Caddy with Let's Encrypt, p4n4-dashboard in the Premier League theme, and p4n4-api.
+#
+#   https://<fqdn>/          the dashboard (and Grafana at /grafana/, through it)
+#   https://<fqdn>:8443/     the analysis room, the inbox (/mail/), the cameras' streams
+services:
+  caddy:
+    image: caddy:2-alpine@sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b
+    container_name: front-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"         # Let's Encrypt, and the redirect to HTTPS
+      - "443:443"
+      - "8443:8443"
+    environment:
+      SITE: ${SITE:?the VM's address}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data          # the certificates
+      - caddy-config:/config
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: ["no-new-privileges:true"]
+    networks: [p4n4-net]
+
+  dashboard:
+    image: ${DASHBOARD_IMAGE:?the themed image deploy.sh builds}
+    container_name: p4n4-dashboard
+    restart: unless-stopped
+    environment:
+      P4N4_API_UPSTREAM: http://host.docker.internal:8000
+      GRAFANA_UPSTREAM: http://p4n4-grafana:3000
+      DASHBOARD_GRAFANA_BASE: /grafana/
+      DASHBOARD_HOST: ${SITE}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /etc/nginx/conf.d:uid=101,gid=101
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    networks: [p4n4-net]
+
+  # On the host's network, so the project's localhost addresses (.p4n4.json's feed on :8090,
+  # the agent on :11434, InfluxDB, MQTT) work as on the club's own machine. It listens on
+  # Docker's bridge only: the dashboard reaches it, the internet doesn't (the NSG neither).
+  # As the VM's p4n4 user, who owns the project: it reads the layers' .env files (mode 600)
+  # for the feed's token and InfluxDB's.
+  api:
+    image: ghcr.io/raisga/p4n4-api:${P4N4_API_VERSION:-0.3.0}
+    container_name: p4n4-api
+    restart: unless-stopped
+    user: "${P4N4_UID:-1000}:${P4N4_GID:-1000}"
+    network_mode: host
+    environment:
+      P4N4_PROJECT_DIR: ${P4N4_PROJECT_DIR:?the project's directory}
+      P4N4_API_HOST: 172.17.0.1
+      P4N4_API_DOCKER: "off"
+      P4N4_API_TRUSTED_PROXIES: 172.16.0.0/12
+      P4N4_API_LOG_FORMAT: json
+    volumes:
+      - ${P4N4_API_DATA:?a directory the p4n4 user owns}:/data   # users, the JWT secret
+      - ${P4N4_PROJECT_DIR}:${P4N4_PROJECT_DIR}:ro
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+networks:
+  p4n4-net:
+    external: true
+    name: p4n4-net
+
+volumes:
+  caddy-data:
+  caddy-config:

@@ -10,15 +10,15 @@ How this project meets the hackathon's criteria ([CHALLENGE.md](CHALLENGE.md)), 
 >
 > **The problem:** clubs, broadcasters and fans get the scoreline and a wall of stats, not the story. Match Intelligence surfaces the moments that matter, explains why they mattered, and makes every match feel made for every fan.
 >
-> **Microsoft and Azure:** Microsoft Agent Framework (multi-agent orchestration, agents as tools, function middleware), Azure OpenAI (the agents' model, by key or Microsoft Entra ID managed identity). In progress: the full stack hosted on an Azure VM, and a shirt-number model trained on Azure Machine Learning.
+> **Microsoft and Azure:** Microsoft Agent Framework (multi-agent orchestration, agents as tools, function middleware); Azure OpenAI (the agents' model, keys off, by the VM's managed identity through Microsoft Entra ID); Azure Virtual Machines (the whole stack, held to a club device's limits); Azure Key Vault (every secret); Azure Machine Learning (our own shirt-number model, trained on synthetic players, exported to ONNX); all from Terraform, deployed by GitHub Actions with OIDC.
 
 ## How to run it
 
 | | |
 |---|---|
 | **The full stack** | README, Quick start: `for layer in iot ai extras; do cp $layer/.env.example $layer/.env; done`, set `AZURE_OPENAI_ENDPOINT` and `AZURE_OPENAI_DEPLOYMENT` (and a key, or Entra ID) in `ai/.env`, then `p4n4 up` (or `docker compose up -d` in `iot`, `ai`, `extras`, in that order). Analysis room <http://localhost:8090/analysis/> (token `demo-read-token`), Grafana <http://localhost:3000>, emails <http://localhost:8025>. A live match is always playing, sped up ×3; `python3 iot/scripts/simulate.py --schedule` prints when it reaches each moment. |
-| **Hosted on Azure** | In progress (week 2): the same stack on an Azure VM, with a public HTTPS address. |
-| **Tests** | `python3 tests/test_analytics.py`, `tests/test_ingest.py`, `tests/test_local_tools.py`, `tests/test_team.py` (no Docker; the last needs `pip install -r ai/agent/requirements.txt`); `./tests/smoke.sh` (the whole stack, throwaway). |
+| **Hosted on Azure** | `cd deploy/azure && terraform apply` ([deploy/azure/README.md](deploy/azure/README.md)): the VM deploys itself in about 20 minutes. The dashboard at `https://<name>.uksouth.cloudapp.azure.com/` (user `judge`), the analysis room at `:8443/analysis/`, the inbox at `:8443/mail/`; logins from `terraform output judge_login`. |
+| **Tests** | `python3 tests/test_analytics.py`, `tests/test_ingest.py`, `tests/test_local_tools.py`, `tests/test_team.py` (no Docker; the last needs `pip install -r ai/agent/requirements.txt`), `tests/test_shirts.py` (the shirt-number model); `terraform test` in `deploy/azure` (mock providers); `./tests/smoke.sh` (the whole stack, throwaway). GitHub Actions runs all but the smoke test on every push. |
 
 ## (i) One pipeline with five stages
 
@@ -38,7 +38,7 @@ How this project meets the hackathon's criteria ([CHALLENGE.md](CHALLENGE.md)), 
 | …with speed and distance indicators at thresholds | ✓ | **Milestones** tag a player the first time he passes 30 km/h, and at 5 and 10 km, on the 5 minutes he did it in. Every window carries each player's distance, high-speed running (> 19.8 km/h), sprints (> 25.2 km/h) and top speed. | `store.py` (`SPEED_TAG_KMH`, `DISTANCE_TAGS_KM`), the Running panel |
 | **Pass quality**: distance, accuracy, difficulty | ✓ | Pass completion, average pass length, a difficulty rating per pass (length, forward progress, pressure on the receiver, into the final third), and hard passes completed. | `analytics.py` (`pass_difficulty`), Team data |
 | **Speed metrics**: ball speed and shot speed | ✓ | Average pass speed and the fastest ball per window, and the fastest shot. Every goal and shot carries its speed. The device's ball-tracker reading is used when it sends one; otherwise the speed is measured from the ball's track. | `analytics.py` (`ball_speed`) |
-| **Auto-eventing** from a video feed | ◐ | The vision pipeline boxes every player and the ball on recorded footage, tells the teams apart by their kits (no training needed for a change of kit), reads shirt numbers with a vision-language model, and finds contacts and falls as plays. These go in through the same contract as `source: video`. It hasn't been run on footage yet: the real footage was dropped (synthetic data only), and our own kickabout is to be filmed. Pass and speed metrics from video need a fixed, calibrated camera. | `ai/vision/matchvision/`, `extras/scripts/clips.py` |
+| **Auto-eventing** from a video feed | ◐ | The vision pipeline boxes every player and the ball on recorded footage, tells the teams apart by their kits (no training needed for a change of kit), reads shirt numbers (a vision-language model, or **our own model trained on Azure Machine Learning** on synthetic players: every kit, 16 fonts, and the cases where a person couldn't read the number, so it learns not to guess), and finds contacts and falls as plays. These go in through the same contract as `source: video`. It hasn't been run on footage yet: the real footage was dropped (synthetic data only), and our own kickabout is to be filmed; it's also the test that decides whether our model replaces the vision-language model (`matchvision.numbers_eval`). Pass and speed metrics from video need a fixed, calibrated camera. | `ai/vision/matchvision/`, `ai/vision/shirts/`, `extras/scripts/clips.py` |
 
 ## (iii) Narrative generation
 
@@ -71,9 +71,11 @@ How this project meets the hackathon's criteria ([CHALLENGE.md](CHALLENGE.md)), 
 | Technology | What it does here | Where |
 |---|---|---|
 | **Microsoft Agent Framework** 1.23 | The team: four `Agent`s; the specialists given to the orchestrator as tools (`Agent.as_tool`); the ingest service's ten tools as `FunctionTool`s with their JSON schemas; a `FunctionMiddleware` that streams every tool call to the chat; streaming runs | `ai/agent/team.py`, `tests/test_team.py` |
-| **Azure OpenAI** | The agents' model (`OpenAIChatCompletionClient` on the Azure deployment), by key or Microsoft Entra ID (`DefaultAzureCredential`: a managed identity on Azure) | `team.py` `azure_client` |
-| Azure VM, Key Vault (in progress) | The stack hosted for judging, from Terraform | README, Next |
-| Azure Machine Learning (in progress) | A shirt-number model trained on synthetic crops, exported to ONNX | README, Next |
+| **Azure OpenAI** | The agents' model (`OpenAIChatCompletionClient` on the Azure deployment, `gpt-4.1-mini`), by Microsoft Entra ID (`DefaultAzureCredential`: the VM's managed identity); the resource has keys off | `team.py` `azure_client`, `deploy/azure/openai.tf` |
+| **Azure Virtual Machines** | The whole stack on one VM, under p4n4-emu's `nuc` profile (a club device's 4 cores and 14 GB), behind HTTPS (Caddy, Let's Encrypt) on its `cloudapp.azure.com` name; only 80, 443 and 8443 open | `deploy/azure/main.tf`, `vm/` |
+| **Managed identities, Microsoft Entra ID** | The VM reads Key Vault and calls Azure OpenAI with no key on disk; GitHub Actions signs in with OIDC (a federated credential) to redeploy, allowed only to run commands on that VM | `deploy/azure/keyvault.tf`, `github.tf`, `.github/workflows/deploy.yml` |
+| **Azure Key Vault** | Every secret (ten, generated by Terraform), read by the VM on each deploy | `deploy/azure/keyvault.tf`, `vm/deploy.sh` |
+| **Azure Machine Learning** | Our shirt-number model: a command job on a CPU cluster that scales to zero, synthetic players drawn as it trains, the run's metrics in MLflow, the model registered and exported to ONNX for ONNX Runtime | `ai/vision/shirts/` (`job.yml`, `train.py`, `aml.sh`), `deploy/azure/ml.tf` |
 
 ## Notes
 

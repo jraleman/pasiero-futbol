@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Built for | The people around a Premier League match: the club's analysts and bench (the calls, the plan), the coaching staff (the reports), broadcast (captions) and fans (the story in their language). The demo's club is Brighton & Hove Albion, 2026-27 |
-| Microsoft and Azure | **Microsoft Agent Framework** 1.23: the team of agents (`ai/agent/team.py`: an orchestrator, an analyst, a coach and a narrator, agents as tools, function middleware). **Azure OpenAI**: the team's model, by key or Microsoft Entra ID (a managed identity on Azure). Next: the stack on an Azure VM and a shirt-number model trained on Azure Machine Learning ([Next](#next)) |
+| Microsoft and Azure | **Microsoft Agent Framework** 1.23: the team of agents (`ai/agent/team.py`: an orchestrator, an analyst, a coach and a narrator, agents as tools, function middleware). **Azure OpenAI**: the team's model, by Microsoft Entra ID (the VM's managed identity) or a key. **Azure Virtual Machines, Key Vault, managed identities**: the whole stack hosted for anyone to open, from Terraform, its secrets in Key Vault, deployed by GitHub Actions with OIDC ([deploy/azure](deploy/azure/README.md)). **Azure Machine Learning**: our own shirt-number model, trained on synthetic players and exported to ONNX ([ai/vision/shirts](ai/vision/shirts/README.md)) |
 | Data | Synthetic only: a match engine plays the season 5 times a second, and every document it posts says `"synthetic": true` (*Demo data* on every screen) |
 | Layers | `iot`, `ai`, `extras` |
 | Services | iot: ingest (+ analysis room, plan editor, season page, reports) · Mosquitto · InfluxDB · Grafana (+ demo club device) · ai: agent (+ the team) · Ollama · n8n · Mailpit · vision (profile, on demand) · extras: go2rtc |
@@ -60,6 +60,8 @@ p4n4 up                     # iot, then ai, then extras
 python3 extras/scripts/clips.py post # optional: our own footage's matches (needs its analyses, see Video)
 ```
 
+**On Azure,** the same stack on a VM behind HTTPS, with Azure OpenAI by managed identity and the secrets in Key Vault: `cd deploy/azure && terraform apply` ([deploy/azure/README.md](deploy/azure/README.md)).
+
 Without the CLI, start the layers in that order: `(cd iot && docker compose up -d) && (cd ai && docker compose up -d) && (cd extras && docker compose up -d)`. Like every p4n4 project, this one uses the fixed `p4n4-*` container names and ports, so stop any other p4n4 project on the host first. The simulator plays and measures the past matches first, about 10 s each, so the season fills in over the first minute or two.
 
 | Open | For | Login |
@@ -96,7 +98,7 @@ Without the CLI, start the layers in that order: `(cd iot && docker compose up -
 
 `python3 iot/scripts/simulate.py --schedule` (on the host) prints when this and the next live match reach each of those moments, in local time.
 
-Everything the simulator posts is marked `"synthetic": true` and says *Demo data* on every screen. Clubs, crests and grounds are the league's (`league.json`); players are shirt numbers by role (1 the keeper, 2 to 5 the back four, 6 the holding midfielder, 9 the striker…), substitutes 14 and up. Each number has a **made-up name** (`iot/ingest/analysis/squads.json`, written by `iot/scripts/squads.py`, seeded per club so it's the same every run): the analysis room, the sentences, the reports and the assistant say "#7 Tomas Calloway". No real player is named, and the real match's players keep their numbers only.
+Everything the simulator posts is marked `"synthetic": true` and says *Demo data* on every screen. Clubs, crests and grounds are the league's (`league.json`); players are shirt numbers by role (1 the keeper, 2 to 5 the back four, 6 the holding midfielder, 9 the striker…), substitutes 14 and up. Each number has a **made-up name** (`iot/ingest/analysis/squads.json`, written by `iot/scripts/squads.py`, seeded per club so it's the same every run): the analysis room, the sentences, the reports and the assistant say "#7 Tomas Calloway". No real player is named.
 
 **Before a meeting,** start from clean data: `iot/scripts/reset_demo.sh` moves the ingest database to `iot/data/ingest/backup-<time>/`, deletes the matches from InfluxDB (Grafana's season too), restarts the ingest service and the simulator, and posts the recorded footage's matches again when their analyses are on the disk.
 
@@ -238,7 +240,7 @@ The header carries the league's lion and gradient, and Grafana's favicon, menu a
 | `tv` | `CAMERA_TV_URL` | The broadcast feed. Without one: the live match again, following the ball at twice the zoom |
 | (more) | `extras/clips/<id>.mp4` | Recorded footage, each loop a stream of its own: the team's own kickabout, filmed for the vision models with numbered bibs and every player's consent (next, [Next](#next)) |
 
-**The vision pipeline** (`ai/vision/matchvision`, run on demand in the `vision` profile, CPU) finds people and the ball on recorded footage, tells the two teams apart by their kits (colour clustering per clip, so a change of kit needs no training), tracks them, reads shirt numbers with a vision-language model, and finds contacts and falls as plays (`source: video`), each with its keyframe. `extras/scripts/clips.py` runs it from `extras/config/clips.json` (the sources, their credit, the match and its two kits, and the ranges each camera loops), posts the plays, and writes the Video tab's overlay (`extras/clips/vision.json`: every footage camera's boxes and play moments, `.p4n4.json` `dashboard.vision`). The manifest is empty until the footage is filmed; the demo's Video tab plays the synthetic cameras.
+**The vision pipeline** (`ai/vision/matchvision`, run on demand in the `vision` profile, CPU) finds people and the ball on recorded footage, tells the two teams apart by their kits (colour clustering per clip, so a change of kit needs no training), tracks them, reads shirt numbers (with a vision-language model, or `--numbers-onnx`: our own model, trained on Azure Machine Learning on synthetic players, [ai/vision/shirts](ai/vision/shirts/README.md)), and finds contacts and falls as plays (`source: video`), each with its keyframe. `extras/scripts/clips.py` runs it from `extras/config/clips.json` (the sources, their credit, the match and its two kits, and the ranges each camera loops), posts the plays, and writes the Video tab's overlay (`extras/clips/vision.json`: every footage camera's boxes and play moments, `.p4n4.json` `dashboard.vision`). The manifest is empty until the footage is filmed; the demo's Video tab plays the synthetic cameras.
 
 ```bash
 cd ai && docker compose --profile vision build vision && cd ..        # brighton-vision:dev (CPU torch)
@@ -311,7 +313,7 @@ P4N4_PROJECT_DIR=$PWD P4N4_API_DATA_DIR=$PWD/.p4n4-api P4N4_API_HOST=172.17.0.1 
 
 - **Tokens.** `INGEST_READ_TOKEN` reads everything, writes plans and makes the calls: the staff's login. The device's token writes only the club's matches. Change both (`openssl rand -hex 24`).
 - **The analysis room** keeps the token for the browser tab only. Serve it over HTTPS (a reverse proxy in front of port 8090) before anyone uses it off the club's network.
-- **Azure OpenAI.** Prefer Microsoft Entra ID (the VM's managed identity) to a key; a key lives only in `ai/.env`. What the team sends Azure is the match's numbers and sentences, by shirt number and made-up name; keep port 11434 (the agent) off the internet, as it answers without a token.
+- **Azure OpenAI.** Prefer Microsoft Entra ID (the VM's managed identity) to a key; a key lives only in `ai/.env`. On Azure ([deploy/azure](deploy/azure/README.md#security)) the resource has keys off, the secrets come from Key Vault, and only 80, 443 and 8443 are open. What the team sends Azure is the match's numbers and sentences, by shirt number and made-up name; keep port 11434 (the agent) off the internet, as it answers without a token.
 - **n8n.** Posts without `NOTIFY_TOKEN` are ignored. Keep port 5678 off the internet. Change `N8N_OWNER_PASSWORD`, `N8N_ENCRYPTION_KEY` and `NOTIFY_TOKEN`. Mailpit shows every email without a login: demos and trusted networks only.
 - **Players** are shirt numbers in the contract, the database and the logs; on the synthetic season the screens and answers add made-up names (`squads.json`), never a real player's. No player ratings. The running is a reading for the staff (and the medical team), never a judgement.
 - **The vision image** runs without network, as the user, memory capped; `fetch_models.py` refuses a model whose pickle imports anything beyond PyTorch, Ultralytics and NumPy. Footage and models stay out of git.
@@ -332,16 +334,20 @@ python3 tests/test_local_tools.py   # the agent's ten tools against a real inges
 python3 tests/test_team.py          # the team of agents (Microsoft Agent Framework) with a scripted model in place of
                                     # Azure OpenAI: delegation, the steps and the answer as Ollama chunks, the fallback to
                                     # Ollama, the recaps (pip install -r ai/agent/requirements.txt; skipped without it)
+python3 tests/test_shirts.py        # the shirt-number model's input and answers, the synthetic players, the ONNX export read
+                                    # back (numpy, opencv-python-headless, pillow; torch and onnxruntime for the export)
+(cd deploy/azure && terraform init -backend=false && terraform test)   # the Azure deployment, on mock providers
 python3 iot/scripts/build_dashboard.py && python3 ai/config/n8n/build.py   # the generated files are up to date
 python3 iot/scripts/squads.py --check   # the made-up names are what the script writes
 ./tests/smoke.sh                    # throwaway iot, ai (n8n, Mailpit) and extras stacks; KEEP=1 leaves them running
 ```
 
+GitHub Actions runs all of these but the smoke test on every push ([ci.yml](.github/workflows/ci.yml)), then deploys main to the Azure VM ([deploy.yml](.github/workflows/deploy.yml)).
+
 The smoke test posts three past matches and the live match so far, then checks the agent API (set pieces and running too), the plans, a call through the feed, the pages, the access rules, InfluxDB (each player's running), MQTT, every Grafana panel and the league's lion; on the ai layer the deviation email, the half-time and match reports and a report on demand; and the cameras (the synthetic ones, and a test clip for each footage camera). It runs alongside another p4n4 project.
 
 ## Next
 
-- **On Azure:** the whole stack on an Azure VM with a public HTTPS address, from Terraform (p4n4-emu's Azure module, without its run timer), the tokens in Azure Key Vault, the team on Azure OpenAI by the VM's managed identity, under `p4n4-emu up` so it runs within the club device's limits.
-- **Shirt numbers on Azure Machine Learning:** a number reader trained on synthetic crops of shirts in every kit, exported to ONNX, replacing the vision-language model only if it reads more of the numbers it reads today (24 of 30).
-- **Our own footage:** a kickabout filmed with numbered bibs, every player's consent, for the vision models and the number reader.
+- **On Azure, for judging:** `terraform apply` in [deploy/azure](deploy/azure/README.md) (the VM, Key Vault, Azure OpenAI, Azure ML), the repository public so the VM and the deploy workflow use it, and the team checked against the real model.
+- **Shirt numbers on footage:** the kickabout filmed with numbered bibs and every player's consent, its crops labelled, and our Azure ML model compared with the vision-language model on them (`matchvision.numbers_eval`); it replaces it only if it reads more and invents none.
 - **The league's tracking feed:** the device reading the official tracking and event feeds for every first-team match, through the same contract.

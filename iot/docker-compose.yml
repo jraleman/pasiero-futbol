@@ -147,7 +147,7 @@ services:
       GF_SECURITY_ALLOW_EMBEDDING: ${GRAFANA_ALLOW_EMBEDDING:-false}
       # Path Grafana serves under: "/" (default), or e.g. "/grafana/" when
       # p4n4-dashboard proxies it on its own origin (GRAFANA_UPSTREAM)
-      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s:%(http_port)s${GRAFANA_SUB_PATH:-/}"
+      GF_SERVER_ROOT_URL: "${GRAFANA_ROOT_URL:-%(protocol)s://%(domain)s:%(http_port)s${GRAFANA_SUB_PATH:-/}}"
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
       # Passed to provisioning files via env var expansion
       INFLUXDB_TOKEN: ${INFLUXDB_TOKEN:-p4n4-stack-token}

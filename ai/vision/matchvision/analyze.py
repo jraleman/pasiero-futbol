@@ -236,8 +236,14 @@ def analyse(args: argparse.Namespace) -> int:
                 return [teams.judge(kit_feature(px), px)[0] for px in (body_pixels(image, box, pitch_lab) for box in boxes)]
 
             dense = numbers.Dense(open_clip(clip, out), lambda image: models.detect(image)[0], judge)
-        reader = numbers.Numbers(numbers.Ollama(args.ollama_url, args.numbers_model), args.numbers_model,
-                                 out / "numbers.json", lineup, dense)
+        if args.numbers_onnx:
+            from .shirts import Onnx
+
+            read = Onnx(args.numbers_onnx)
+            model = f"{Path(args.numbers_onnx).name} {read.about.get('trained', '')}"
+        else:
+            read, model = numbers.Ollama(args.ollama_url, args.numbers_model), args.numbers_model
+        reader = numbers.Numbers(read, model, out / "numbers.json", lineup, dense)
         reader.label(events, frames, images)
         if dense:
             dense.close()
@@ -362,6 +368,9 @@ def main(argv: list[str] | None = None) -> int:
                              "(a few seconds a view on CPU, up to 4 views a player)")
     parser.add_argument("--ollama-url", default=os.environ.get("OLLAMA_URL", "http://ollama:11434"))
     parser.add_argument("--numbers-model", default=os.environ.get("NUMBERS_MODEL", "gemma4:e2b"))
+    parser.add_argument("--numbers-onnx", default=os.environ.get("NUMBERS_ONNX") or None,
+                        help="read them with our own model instead (shirt_numbers.onnx, trained on Azure ML: "
+                             "ai/vision/shirts/), in milliseconds a view (implies --numbers)")
     parser.add_argument("--lineup", help='the match sheet, {"home": [1, 4, ...], "away": [...]}: other numbers are dropped')
     parser.add_argument("--cards", help="the cards in the referee's report (JSON, see load_cards), checked against "
                         "the offender of the contact before each: an identity alert when the numbers differ "
@@ -390,7 +399,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if not args.match_id and not (args.home and args.away):
         parser.error("pass --match-id, or --home and --away to create the fixture")
-    if args.cards:
+    if args.cards or args.numbers_onnx:
         args.numbers = True
     if args.post:
         parser.error("this project posts what a clip's analysis found as the club's plays: "

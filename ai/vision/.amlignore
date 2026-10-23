@@ -1,0 +1,6 @@
+# What Azure ML doesn't upload with a job (code: ai/vision)
+models/
+__pycache__/
+*.pyc
+fonts/
+outputs/

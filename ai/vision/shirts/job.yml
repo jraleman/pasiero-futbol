@@ -1,0 +1,30 @@
+# The shirt-number model, trained on Azure Machine Learning (shirts/README.md):
+#   az ml job create -f shirts/job.yml -g <resource group> -w <workspace>      (from ai/vision)
+# or shirts/aml.sh, which also registers the model and downloads it.
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+type: command
+experiment_name: shirt-numbers
+display_name: shirt numbers on synthetic players
+description: A ResNet-18 reading shirt numbers, trained on synthetic players and exported to ONNX for matchvision.
+# ai/vision: matchvision (the crop's preparation and the decoding, shared with the reader) and shirts/
+code: ..
+command: >-
+  python shirts/train.py --out ${{outputs.model}} --epochs ${{inputs.epochs}}
+  --per-epoch ${{inputs.per_epoch}} --batch ${{inputs.batch}} --fonts fonts
+inputs:
+  epochs: 16
+  per_epoch: 24000
+  batch: 128
+outputs:
+  model:
+    type: uri_folder
+environment:
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04:latest
+  conda_file: conda.yml
+# The cluster Terraform makes (deploy/azure, ml.tf): CPUs, scaled to zero between jobs
+compute: azureml:cpu-cluster
+resources:
+  shm_size: 4g        # the data loader's workers share batches through /dev/shm
+tags:
+  project: match-intelligence
+  data: synthetic
