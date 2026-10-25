@@ -1,6 +1,6 @@
 # Match Intelligence on Azure
 
-The whole stack on one Azure VM, as the club's match device would run it, behind HTTPS, for anyone to open. From Terraform, in one `apply`:
+The whole stack on one Azure VM, as the club's match device would run it, behind HTTPS, for anyone to open. From Terraform, in one `apply`. Step by step from a new subscription: [GUIDE.md](GUIDE.md); where it stands: [REPORT.md](REPORT.md).
 
 | Azure | What it does here |
 |---|---|
@@ -26,7 +26,7 @@ agent (team.py) ──Entra ID (managed identity)──► Azure OpenAI         
 
 - An Azure subscription (pay-as-you-go; the free credits cover two weeks), and the Azure CLI signed in: `az login`.
 - Terraform ≥ 1.10, and an SSH key (`~/.ssh/id_ed25519.pub`, or `ssh_public_key_path`).
-- **Quotas** in the region (Portal → Quotas): 4 vCPUs of *Standard ESv5 Family* for the VM, and for Azure ML 8 cores of *Standard FSv2 Family* (Azure ML has its own quota page). A new subscription often has 10 cores a family.
+- **Quotas** in the region (Portal → Quotas): 4 vCPUs of the VM's family (*Standard ESv5 Family* for the default `size`), and 8 of the cluster's under Azure ML's own quota. The size must also be offered to your subscription there: a new subscription may have neither (UK South offered no E4 size to ours). [GUIDE.md](GUIDE.md), step 3, checks both and picks the sizes.
 - The repository public on GitHub, for the VM to clone (`repo_url`). Until then, `vm/push.sh` copies your working tree instead.
 
 ## Deploy
