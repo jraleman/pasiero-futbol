@@ -35,6 +35,15 @@
 			flush_interval -1
 		}
 	}
+	# The loops as files (p4n4-clips), which the dashboard plays with the vision overlay
+	@loops {
+		method GET HEAD
+		path_regexp ^/cameras/[a-z0-9-]+\.mp4$
+	}
+	handle @loops {
+		uri strip_prefix /cameras
+		reverse_proxy p4n4-clips:8080
+	}
 	handle /cameras/* {
 		respond 404
 	}

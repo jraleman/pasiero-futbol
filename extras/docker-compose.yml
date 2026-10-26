@@ -2,9 +2,9 @@ services:
 
   # ====================================================================================
   # brighton-match-analysis: extras layer, with the match device (at the Amex, or on the road)
-  #   tactical and broadcast cameras ──► video :1984 ──MJPEG──► p4n4-dashboard Video tab
-  #   (or clips/*.mp4 on a loop; or synthetic cameras        analysis room (../iot :8090/analysis/)
-  #    drawing the demo's live match)
+  #   clips/<camera>.mp4 (real recordings) ──► clips :1985 ──MP4──► p4n4-dashboard Video tab (vision overlay)
+  #                                        └──► video :1984 ──MJPEG──► analysis room (../iot :8090/analysis/)
+  #   (video also takes a real camera's URL; without URL or loop it draws the simulated match)
   # Joins p4n4-net: on the same host as ../iot, start that first; on a machine of its
   # own, `docker network create p4n4-net` once.
   # ====================================================================================
@@ -47,6 +47,30 @@ services:
       timeout: 5s
       retries: 3
       start_period: 60s
+    networks:
+      - p4n4-net
+
+  # ------------------------------------------------------------------------------------
+  # Clips (nginx): the same loops as files, for the dashboard to play with the vision
+  # overlay in step (an MJPEG stream has no playback position); only clips/<id>.mp4
+  # ------------------------------------------------------------------------------------
+  clips:
+    image: nginxinc/nginx-unprivileged:1.29-alpine
+    container_name: p4n4-clips
+    restart: ${RESTART_POLICY:-unless-stopped}
+    ports:
+      - "1985:8080"   # http://<host>:1985/<camera>.mp4: the club's network only
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - ./config/clips/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./clips:/clips:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     networks:
       - p4n4-net
 

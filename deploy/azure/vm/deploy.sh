@@ -6,7 +6,8 @@
 #   2. Each layer's .env: its .env.example, the secrets, the public addresses, Azure OpenAI
 #      by Entra ID (no key)
 #   3. The project's localhost links made public (HOME.md, the theme, the cameras)
-#   4. The stacks under p4n4-emu's nuc profile: the club's device, 4 cores and 14 GB
+#   4. The stacks under p4n4-emu's nuc profile: the club's device, 4 cores and 14 GB; the
+#      recorded footage's matches and plays, when push.sh brought them
 #   5. The dashboard's image in the project's theme, then the front: Caddy, the dashboard,
 #      p4n4-api, and the judge's and admin's logins
 #
@@ -105,6 +106,16 @@ jq --arg base "$PUBLIC/cameras" \
 say "Stacks (p4n4-emu, nuc)"
 cd "$REPO"
 p4n4-emu up --profile nuc --build
+
+# The footage's matches and plays (extras/scripts/clips.py), when push.sh brought its analyses
+if ls extras/clips/analysis/*/alerts.json >/dev/null 2>&1; then
+    say "Footage's matches and plays"
+    for _ in $(seq 30); do
+        [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/)" != 000 ] && break
+        sleep 2
+    done
+    python3 extras/scripts/clips.py post || echo "clips.py post failed: the footage's plays aren't in the feed" >&2
+fi
 
 # ── 5. The front ───────────────────────────────────────────────────────────────
 say "Dashboard image"

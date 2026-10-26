@@ -34,39 +34,33 @@
     "cameras": [
       {
         "id": "tactical",
-        "name": "Tactical (live match)",
-        "port": 1984,
-        "path": "/api/stream.mjpeg?src=tactical"
+        "name": "Tactical · M9 Yellow – M9 Blue",
+        "port": 1985,
+        "path": "/tactical.mp4"
       },
       {
         "id": "tv",
-        "name": "Broadcast (live match)",
-        "port": 1984,
-        "path": "/api/stream.mjpeg?src=tv"
+        "name": "Broadcast · M9 Yellow – M9 Blue",
+        "port": 1985,
+        "path": "/tv.mp4"
       },
       {
         "id": "soccertrack-m3",
         "name": "SoccerTrack · M3 Khaki – M3 Blue",
-        "port": 1984,
-        "path": "/api/stream.mjpeg?src=soccertrack-m3"
+        "port": 1985,
+        "path": "/soccertrack-m3.mp4"
       },
       {
         "id": "soccertrack-m4",
         "name": "SoccerTrack · M4 White – M4 Blue",
-        "port": 1984,
-        "path": "/api/stream.mjpeg?src=soccertrack-m4"
+        "port": 1985,
+        "path": "/soccertrack-m4.mp4"
       },
       {
         "id": "soccertrack-m7",
         "name": "SoccerTrack · M7 White – M7 Blue",
-        "port": 1984,
-        "path": "/api/stream.mjpeg?src=soccertrack-m7"
-      },
-      {
-        "id": "soccertrack-m9",
-        "name": "SoccerTrack · M9 Yellow – M9 Blue",
-        "port": 1984,
-        "path": "/api/stream.mjpeg?src=soccertrack-m9"
+        "port": 1985,
+        "path": "/soccertrack-m7.mp4"
       }
     ]
   }

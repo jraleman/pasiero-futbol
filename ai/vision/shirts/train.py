@@ -18,6 +18,17 @@ kit's numbers). On each: of the legible numbers, how many it reads right
 how many it reads anyway (invented), the error that matters most. In Azure
 ML these go to the run's metrics (MLflow).
 
+With --real (real.py's folder) it trains on real players instead: SoccerTrack
+v2's crops, labelled with the player's number, each drawn a little
+differently every time (the box shifted and scaled, colour, blur, lost
+resolution; never mirrored: that reverses the digits). The epoch kept is the
+one that reads most of the validation matches' numbers (SoccerTrack's own
+validation split, M2 and M10, by the dataset's labels); the test matches (M7,
+M9) are measured at the end only, by the dataset's labels and, where a person
+checked them (label.py: checked.json), by what's legible.
+
+    python3 train.py --real real/ --out outputs/real
+
 The output folder gets shirt_numbers.onnx, with what it was trained on and its
 results in its metadata, and metrics.json.
 """
@@ -37,7 +48,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, IterableDataset, get_worker_info
+from torch.utils.data import DataLoader, Dataset, IterableDataset, get_worker_info
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))           # matchvision, for prepare() and decode()
@@ -63,6 +74,69 @@ class Synthetic(IterableDataset):
         for _ in range(self.per_epoch // workers):
             s = players.sample()
             yield torch.from_numpy(shirts.prepare(s.image)), torch.tensor(shirts.target(s.number))
+
+
+VAL_MATCHES = {"117093", "132877"}         # M2 and M10: SoccerTrack's validation split
+
+
+def real_crops(folder: Path, labels: str = "labels.json", matches: set | None = None, exclude: set | None = None) -> list:
+    """(path, number or None) of real.py's crops in [folder]: numbers 1-99 (or null, where a person checked)."""
+    numbers = json.loads((folder / labels).read_text())
+    about = json.loads((folder / "about.json").read_text())
+    out = []
+    for name, number in sorted(numbers.items()):
+        match = about.get(name, {}).get("match")
+        if (matches is not None and match not in matches) or (exclude and match in exclude):
+            continue
+        if number is None or 1 <= number <= 99:
+            out.append((folder / name, number))
+    return out
+
+
+def jitter(image: np.ndarray, rng: np.random.Generator) -> np.ndarray:
+    """A real crop as another detection of the same moment might give it: the box a little off, the light, the focus."""
+    import cv2
+
+    h, w = image.shape[:2]
+    sx, sy = rng.uniform(0.88, 1.0), rng.uniform(0.9, 1.0)
+    cw, ch = int(w * sx), int(h * sy)
+    x, y = int(rng.uniform(0, w - cw + 1)), int(rng.uniform(0, h - ch + 1))
+    image = cv2.resize(image[y:y + ch, x:x + cw], (w, h), interpolation=cv2.INTER_LINEAR)
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV).astype(np.float32)
+    hsv[..., 0] = (hsv[..., 0] + rng.uniform(-6, 6)) % 180
+    hsv[..., 1] *= rng.uniform(0.7, 1.3)
+    hsv[..., 2] *= rng.uniform(0.7, 1.3)
+    image = cv2.cvtColor(np.clip(hsv, 0, 255).astype(np.uint8), cv2.COLOR_HSV2BGR)
+    if rng.random() < 0.3:                                  # farther from the camera
+        k = rng.uniform(0.45, 0.8)
+        image = cv2.resize(cv2.resize(image, None, fx=k, fy=k, interpolation=cv2.INTER_AREA), (w, h))
+    if rng.random() < 0.3:                                  # motion, focus
+        image = cv2.GaussianBlur(image, (5, 5), rng.uniform(0.5, 1.5))
+    return image
+
+
+class Real(Dataset):
+    """Real players' crops, each drawn a little differently every time (jitter)."""
+
+    def __init__(self, crops: list, seed: int) -> None:
+        self.crops, self.seed, self.epoch = crops, seed, 0
+
+    def __len__(self) -> int:
+        return len(self.crops)
+
+    def __getitem__(self, i: int):
+        import cv2
+
+        path, number = self.crops[i]
+        rng = np.random.default_rng((self.seed, self.epoch, i))
+        image = jitter(cv2.imread(str(path)), rng)
+        return torch.from_numpy(shirts.prepare(image)), torch.tensor(shirts.target(number))
+
+
+def fixed_real(crops: list) -> tuple[torch.Tensor, list]:
+    import cv2
+
+    return torch.from_numpy(np.stack([shirts.prepare(cv2.imread(str(p))) for p, _ in crops])), [n for _, n in crops]
 
 
 def batches_per_epoch(per_epoch: int, batch: int, workers: int) -> int:
@@ -151,6 +225,7 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--fonts", type=Path, default=Path.home() / ".cache" / "shirt-fonts")
     parser.add_argument("--no-pretrained", action="store_true", help="start from random weights (no download)")
+    parser.add_argument("--real", type=Path, help="real.py's folder (train/, test/): train on real players, not synthetic")
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     torch.manual_seed(args.seed)
@@ -164,14 +239,29 @@ def main() -> None:
     if mlflow:
         mlflow.log_params({k: str(v) for k, v in vars(args).items()})
 
-    train_fonts, new_fonts = synth.fonts(args.fonts), synth.fonts(args.fonts, held_out=True)
-    print(f"fonts: {len(train_fonts)} to train on, {len(new_fonts)} held out", flush=True)
-    data = Synthetic(train_fonts, args.per_epoch, args.seed)
-    loader = DataLoader(data, batch_size=args.batch, num_workers=args.workers, persistent_workers=False)
-    tests = {"seen_fonts": fixed(train_fonts, args.val, 10**6), "new_fonts": fixed(new_fonts, args.val, 2 * 10**6)}
+    if args.real:
+        train = real_crops(args.real / "train", exclude=VAL_MATCHES)
+        val = real_crops(args.real / "train", matches=VAL_MATCHES)
+        test = real_crops(args.real / "test")
+        print(f"real crops: {len(train)} to train on, {len(val)} to choose the epoch, {len(test)} to test", flush=True)
+        data = Real(train, args.seed)
+        args.per_epoch = len(train)
+        loader = DataLoader(data, batch_size=args.batch, shuffle=True, num_workers=args.workers, persistent_workers=False)
+        tests = {"val": fixed_real(val)}
+        finals = {"test_dataset": fixed_real(test)}
+        if (args.real / "test" / "checked.json").is_file():
+            finals["test_checked"] = fixed_real(real_crops(args.real / "test", "checked.json"))
+        chooser = "val"
+    else:
+        train_fonts, new_fonts = synth.fonts(args.fonts), synth.fonts(args.fonts, held_out=True)
+        print(f"fonts: {len(train_fonts)} to train on, {len(new_fonts)} held out", flush=True)
+        data = Synthetic(train_fonts, args.per_epoch, args.seed)
+        loader = DataLoader(data, batch_size=args.batch, num_workers=args.workers, persistent_workers=False)
+        tests = {"seen_fonts": fixed(train_fonts, args.val, 10**6), "new_fonts": fixed(new_fonts, args.val, 2 * 10**6)}
+        finals, chooser = {}, "new_fonts"
 
     model = Reader(not args.no_pretrained)
-    steps = args.epochs * batches_per_epoch(args.per_epoch, args.batch, args.workers)
+    steps = args.epochs * (len(loader) if args.real else batches_per_epoch(args.per_epoch, args.batch, args.workers))
     optimiser = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     schedule = torch.optim.lr_scheduler.OneCycleLR(optimiser, max_lr=args.lr, total_steps=steps, pct_start=0.15)
 
@@ -188,32 +278,34 @@ def main() -> None:
             schedule.step()
             total, n = total + loss.item() * len(x), n + len(x)
         results = {name: measure(model, *test) for name, test in tests.items()}
-        at = results["new_fonts"][shirts.THRESHOLD]
+        at = results[chooser][shirts.THRESHOLD]
         line = {"loss": total / max(1, n), **{f"{name}_{k}": v for name, r in results.items()
                                                for k, v in r[shirts.THRESHOLD].items() if k not in ("legible", "illegible")}}
         print(f"epoch {epoch + 1}/{args.epochs} {time.time() - started:.0f}s " +
               " ".join(f"{k}={v:.3f}" for k, v in line.items()), flush=True)
         if mlflow:
             mlflow.log_metrics(line, step=epoch + 1)
-        # Kept: the epoch that reads most new-font numbers while inventing the fewest
-        score = at["read"] - 5 * at["invented"]
+        # Kept: the epoch that reads most new-font (validation) numbers while inventing (misreading) the fewest
+        score = at["read"] - 5 * (at["invented"] if not args.real else at["misread"])
         if score > best:
             best = score
             torch.save(model.state_dict(), args.out / "best.pt")
 
     model.load_state_dict(torch.load(args.out / "best.pt"))
-    results = {name: measure(model, *test) for name, test in tests.items()}
+    results = {name: measure(model, *test) for name, test in {**tests, **finals}.items()}
     about = {"size": shirts.SIZE, "band": list(shirts.BAND), "threshold": shirts.THRESHOLD, "outputs": shirts.OUTPUTS,
              "trained": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%MZ"), "epochs": args.epochs,
              "samples": args.epochs * args.per_epoch, "pretrained": not args.no_pretrained,
-             "synthetic": {name: r[shirts.THRESHOLD] for name, r in results.items()}}
+             ("real" if args.real else "synthetic"): {name: r[shirts.THRESHOLD] for name, r in results.items()}}
+    if args.real:
+        about["data"] = "SoccerTrack v2 (CC BY 4.0: A. Scott, I. Uchida, K. Kuroda, Y. Kim, K. Fujii, arXiv:2508.01802)"
     export(model, args.out / "shirt_numbers.onnx", about)
     (args.out / "metrics.json").write_text(json.dumps({name: {str(t): v for t, v in r.items()} for name, r in results.items()}, indent=2))
     (args.out / "best.pt").unlink()
     if mlflow:
         mlflow.log_metrics({f"final_{name}_{k}": v for name, r in results.items()
                             for k, v in r[shirts.THRESHOLD].items() if k not in ("legible", "illegible")})
-    print(json.dumps(about["synthetic"], indent=1))
+    print(json.dumps(about["real" if args.real else "synthetic"], indent=1))
     print(f"→ {args.out / 'shirt_numbers.onnx'}")
 
 

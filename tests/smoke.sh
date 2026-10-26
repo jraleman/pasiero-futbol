@@ -65,12 +65,15 @@ EOF
 
 # The extras layer: the TV camera stands in as an HTTP MJPEG URL (the tactical
 # camera's own stream; its ?, = and & exercise video.sh's quoting), the real
-# match's camera loops a test clip from extras/clips/, the tactical one is synthetic
+# footage cameras loop test clips from extras/clips/ (p4n4-clips serves them too), the tactical one is synthetic
 sed -e 's|^CAMERA_TV_URL=.*|CAMERA_TV_URL=http://localhost:1984/api/stream.mjpeg?src=tactical\&smoke=1|' \
     ../extras/.env.example > ../extras/.env
 cat > ../extras/docker-compose.override.yml <<EOF
 services:
   video:
+    container_name: !reset null
+    ports: !reset []
+  clips:
     container_name: !reset null
     ports: !reset []
 networks:
@@ -312,13 +315,16 @@ after="$(inbox messages | python3 -c 'import json,sys; print(len(json.load(sys.s
 [ "$after" = "$count" ] && ok "a post without the ingest service's token sends nothing" || fail "messages: $count, then $after"
 
 echo "== extras layer: video (project $PROJECT-extras)"
-# A test clip for each footage camera (the footage itself isn't copied): the clips' cameras are the manifest's others
-for clip in $(python3 -c "import json; print(' '.join(c['id'] for c in json.load(open('$WORK_DIR/.p4n4.json'))['dashboard']['cameras'] if c['id'] not in ('tactical', 'tv')))"); do
+# A test clip for each camera but the tactical one (the footage itself isn't copied), which stays
+# the synthetic camera go2rtc draws without a loop; the TV camera's URL wins over its loop
+cameras="$(python3 -c "import json; print(' '.join(c['id'] for c in json.load(open('$WORK_DIR/.p4n4.json'))['dashboard']['cameras']))")"
+for clip in $cameras; do
+  [ "$clip" = tactical ] && continue
   docker run --rm --user "$(id -u):$(id -g)" --entrypoint ffmpeg -v "$WORK_DIR/extras/clips:/out" alexxit/go2rtc:1.9.14 \
     -hide_banner -loglevel error -f lavfi -i testsrc2=size=320x240:rate=10 -t 2 -c:v libx264 -pix_fmt yuv420p "/out/$clip.mp4"
 done
 compose_extras up -d --wait --quiet-pull >/dev/null 2>&1 || { compose_extras logs --no-color --tail 30; exit 1; }
-for src in $(python3 -c "import json; print(' '.join(c['path'].split('src=')[1] for c in json.load(open('$WORK_DIR/.p4n4.json'))['dashboard']['cameras']))"); do
+for src in $cameras; do
   magic=""
   for _ in $(seq 1 30); do
     magic="$(compose_extras exec -T video sh -c "wget -qO- 'http://localhost:1984/api/frame.jpeg?src=$src' | head -c 3 | od -An -tx1" 2>/dev/null | tr -d ' \n')" || true
@@ -326,6 +332,16 @@ for src in $(python3 -c "import json; print(' '.join(c['path'].split('src=')[1] 
     sleep 2
   done
   [ "$magic" = ffd8ff ] && ok "camera '$src' serves JPEG frames" || fail "camera '$src': no JPEG (got '$magic')"
+done
+# p4n4-clips: each loop as a file for the dashboard (an MP4's ftyp box), and nothing else in extras/clips
+for clip in $cameras; do
+  [ "$clip" = tactical ] && continue
+  box="$(compose_extras exec -T clips sh -c "wget -qO- 'http://localhost:8080/$clip.mp4' | head -c 8 | tail -c 4" 2>/dev/null || true)"
+  [ "$box" = ftyp ] && ok "p4n4-clips serves '$clip.mp4'" || fail "p4n4-clips: '$clip.mp4' isn't an MP4 (got '$box')"
+done
+for path in vision.json footage/index.json analysis/; do
+  compose_extras exec -T clips wget -qO /dev/null "http://localhost:8080/$path" >/dev/null 2>&1 \
+    && fail "p4n4-clips serves /$path" || ok "p4n4-clips doesn't serve /$path"
 done
 # The synthetic camera plays the live match's engine before its first frame (about 5 s): give it 12
 bytes="$(compose_extras exec -T video sh -c "timeout 12 wget -qO- 'http://localhost:1984/api/stream.mjpeg?src=tactical' | wc -c" 2>/dev/null | tr -d ' \r' || true)"

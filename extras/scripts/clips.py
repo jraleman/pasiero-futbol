@@ -41,8 +41,10 @@ manifest's score, and the plays the models found: a contact and a fall is a
 foul (whether it was given, the video doesn't say), each with its keyframe,
 on the camera whose loop shows it ("source": "video"). A source's "labels"
 (plays a person labelled, e.g. a dataset's goals: {"play_id", "t" in the
-source's seconds, "period", "type", "team", "players"}) are posted too
-("source": "label", the frame the camera shows then as evidence), and the
+source's seconds, "clock" (the seconds since the period's kick-off), "period",
+"type", "team", "players"}) are posted too
+("source": "label", the frame the camera shows then as evidence, cut once into
+the analysis's keyframes/), and the
 overlay flags them like the models' plays. Dated as if the clip ended now, so
 they top the feed; posting again updates them.
 
@@ -223,7 +225,7 @@ def label_play(label: dict, site: str, match: dict, camera: str, timestamp: str)
     """A source's labelled play (e.g. a dataset's goal) as a club play (contract 0.1): labelled, so certain."""
     return {"schema": "p4n4.team.play/0.1", "play_id": label["play_id"], "site_id": site,
             "match_id": match["match_id"], "camera_id": camera, "timestamp": timestamp,
-            "period": label.get("period", 1), "match_time_s": float(label["t"]), "type": label["type"],
+            "period": label.get("period", 1), "match_time_s": float(label.get("clock", label["t"])), "type": label["type"],
             "team": label["team"], "players": label.get("players", []), "details": {}, "confidence": 1.0,
             "source": "label", "synthetic": False}
 
@@ -287,8 +289,13 @@ def post(args: argparse.Namespace) -> None:
                 print(f"{name}: rejected {result['rejected']}")
         for doc, play in plays:
             if doc is None:
-                image = still(CLIPS / source["file"], play["match_time_s"], manifest["cameras"][play["camera_id"]])
-                call("PUT", f"{url}/api/v1/evidence/{play['play_id']}", token, image, "image/jpeg")
+                # Cut once, kept with the analysis: posting again (or on another host) needs no footage
+                keyframe = analysis / "keyframes" / f"{play['play_id']}.jpg"
+                if not keyframe.is_file():
+                    keyframe.parent.mkdir(parents=True, exist_ok=True)
+                    keyframe.write_bytes(still(CLIPS / source["file"], play["match_time_s"],
+                                               manifest["cameras"][play["camera_id"]]))
+                call("PUT", f"{url}/api/v1/evidence/{play['play_id']}", token, keyframe.read_bytes(), "image/jpeg")
                 continue
             keyframe = analysis / "keyframes" / f"{doc['alert_id']}.jpg"
             if keyframe.is_file():

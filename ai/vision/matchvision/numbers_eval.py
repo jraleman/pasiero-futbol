@@ -97,7 +97,7 @@ def score(read, crops: list[tuple[str, object, int | None]]) -> dict:
 
 
 def compare(args: argparse.Namespace) -> int:
-    labels = json.loads((args.crops / "labels.json").read_text())
+    labels = json.loads((args.crops / args.labels).read_text())
     crops = []
     for name, label in sorted(labels.items()):
         image = cv2.imread(str(args.crops / name))
@@ -127,7 +127,7 @@ def compare(args: argparse.Namespace) -> int:
         vlm, ours = results.values()
         better = ours["read"] > vlm["read"] and ours["invented"] <= vlm["invented"] and ours["misread"] <= vlm["misread"] + 1
         print("→ " + ("the ONNX model reads more and invents no more: it can replace the vision-language model"
-                      if better else "→ keep the vision-language model: the ONNX model doesn't beat it on these crops"))
+                      if better else "keep the vision-language model: the ONNX model doesn't beat it on these crops"))
     return 0
 
 
@@ -143,6 +143,7 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--device", default="cpu")
     m = sub.add_parser("compare", help="the readers on labelled crops")
     m.add_argument("crops", type=Path, help="a folder of crops with labels.json")
+    m.add_argument("--labels", default="labels.json", help="the labels' file in it (e.g. checked.json: shirts/label.py)")
     m.add_argument("--onnx", type=Path, help="our model (shirt_numbers.onnx)")
     m.add_argument("--threshold", type=float, help="how sure our model must be (default: shirts.THRESHOLD)")
     m.add_argument("--ollama-url", default="http://localhost:11434")

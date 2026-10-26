@@ -23,5 +23,7 @@ ai/vision/models/
 
 static-demo/
 
-# The shirt-number model's training runs (ai/vision/shirts/train.py --out)
+# The shirt-number model's training runs (ai/vision/shirts/train.py --out), and its real players'
+# crops (ai/vision/shirts/real.py: SoccerTrack v2's footage, kept off the repository like the clips)
 ai/vision/shirts/outputs/
+ai/vision/shirts/real/

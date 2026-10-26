@@ -15,8 +15,8 @@
 
 ```
   extras/
-  tactical camera, broadcast feed ──► video :1984 (go2rtc) ──MJPEG──► p4n4-dashboard Video tab, analysis room
-  (synthetic cameras drawing the live match; or extras/clips/*.mp4: our own footage, with the vision overlay)
+  extras/clips/<camera>.mp4 (real recordings) ──► clips :1985 (nginx) ──MP4──► p4n4-dashboard Video tab, with the vision overlay
+                                             └──► video :1984 (go2rtc) ──MJPEG──► analysis room (or a real camera's URL)
 
   club match device (tracking + analytics) ═══HTTPS, X-Site-Token═══╗   team contract 0.1: fixtures, windows
   simulator (profile "demo": engine.py + analytics.py) ─────────────╢   (running, set pieces, pass quality),
@@ -232,15 +232,17 @@ The header carries the league's lion and gradient, and Grafana's favicon, menu a
 
 ## Video
 
-`extras/config/go2rtc/video.sh` serves the cameras `.p4n4.json` lists for the Video tab:
+The Video tab shows only real recordings, the cameras `.p4n4.json` lists (`dashboard.cameras`): each a loop `extras/scripts/clips.py` cuts, `extras/clips/<id>.mp4`, which `p4n4-clips` (nginx, `:1985`) serves as a file so the dashboard plays it itself and draws the vision overlay in step (an MJPEG stream has no playback position, so no overlay is drawn over one):
 
-| Camera | From | What |
-|---|---|---|
-| `tactical` | `CAMERA_TACTICAL_URL` | High on the main stand at halfway, the whole pitch in view: the one the tracker measures. Without a URL: a **synthetic camera** drawing the live match (it imports the simulator's engine and plays the same seed, so its players are where the analysis room says, in the clubs' kits) |
-| `tv` | `CAMERA_TV_URL` | The broadcast feed. Without one: the live match again, following the ball at twice the zoom |
-| (more) | `extras/clips/<id>.mp4` | Recorded footage, each loop a stream of its own, listed in `.p4n4.json` `dashboard.cameras` to show in the tab: the team's own kickabout, filmed for the vision models with numbered bibs and every player's consent (next, [Next](#next)); until then `soccertrack-m3`, `-m4`, `-m7` and `-m9`, four SoccerTrack v2 goals |
+| Camera | What |
+|---|---|
+| `tactical` | The whole pitch in view: SoccerTrack v2's panorama of M9's first goal (M9 Yellow – M9 Blue) |
+| `tv` | Broadcast: the same goal, cropped to the end where it's scored |
+| `soccertrack-m3`, `-m4`, `-m7` | Three more SoccerTrack v2 goals, each cropped to its goal end |
 
-**The vision pipeline** (`ai/vision/matchvision`, run on demand in the `vision` profile, CPU) finds people and the ball on recorded footage, tells the two teams apart by their kits (colour clustering per clip, so a change of kit needs no training), tracks them, reads shirt numbers (with a vision-language model, or `--numbers-onnx`: our own model, trained on Azure Machine Learning on synthetic players, [ai/vision/shirts](ai/vision/shirts/README.md)), and finds contacts and falls as plays (`source: video`), each with its keyframe. `extras/scripts/clips.py` runs it from `extras/config/clips.json` (the sources, their credit, the match and its two kits, and the ranges each camera loops), posts the plays, and writes the Video tab's overlay (`extras/clips/vision.json`: every footage camera's boxes and play moments, `.p4n4.json` `dashboard.vision`). Until the kickabout is filmed, the manifest holds four goals from SoccerTrack v2 (CC BY 4.0: SoccerTrack v2, A. Scott, I. Uchida, K. Kuroda, Y. Kim, K. Fujii, arXiv:2508.01802), pending the organisers' answer on real footage: `extras/scripts/footage.py` cuts them from the dataset's panoramas (`clips.json` `_candidates`: also SoccerNet and the DFL's, off by default; 5 GB at most), and each camera crops its panorama to the end where the goal is scored (a camera's `crop`, which the overlay follows). Without loops, the demo's Video tab plays the synthetic cameras.
+The team's own kickabout, filmed for the vision models with numbered bibs and every player's consent ([Next](#next)), replaces them once filmed. `extras/config/go2rtc/video.sh` (go2rtc, `:1984`) still serves each loop as an MJPEG stream, and a real camera's stream from `CAMERA_TACTICAL_URL` or `CAMERA_TV_URL`: to show one, point its camera in `.p4n4.json` at `/api/stream.mjpeg?src=<id>` on 1984 (no overlay). Without either, go2rtc's `pitch.py` draws the simulated match, which the tab no longer shows.
+
+**The vision pipeline** (`ai/vision/matchvision`, run on demand in the `vision` profile, CPU) finds people and the ball on recorded footage, tells the two teams apart by their kits (colour clustering per clip, so a change of kit needs no training), tracks them, reads shirt numbers (with a vision-language model, or `--numbers-onnx`: our own model, trained on Azure Machine Learning on synthetic players, [ai/vision/shirts](ai/vision/shirts/README.md)), and finds contacts and falls as plays (`source: video`), each with its keyframe. `extras/scripts/clips.py` runs it from `extras/config/clips.json` (the sources, their credit, the match and its two kits, and the ranges each camera loops), posts the plays, and writes the Video tab's overlay (`extras/clips/vision.json`: every footage camera's boxes and play moments, `.p4n4.json` `dashboard.vision`). Until the kickabout is filmed, the manifest holds four goals from SoccerTrack v2 (CC BY 4.0: SoccerTrack v2, A. Scott, I. Uchida, K. Kuroda, Y. Kim, K. Fujii, arXiv:2508.01802), pending the organisers' answer on real footage: `extras/scripts/footage.py` cuts them from the dataset's panoramas (`clips.json` `_candidates`: also SoccerNet and the DFL's, off by default; 5 GB at most), and each camera crops its panorama to the end where the goal is scored (a camera's `crop`, which the overlay follows). The panoramas defeat the pitch calibration, so the models find no goal there themselves: each source's `labels` hold the dataset's goal, posted as a labelled play (`source: label`) and flagged by the overlay.
 
 ```bash
 cd ai && docker compose --profile vision build vision && cd ..        # brighton-vision:dev (CPU torch)
@@ -349,5 +351,5 @@ The smoke test posts three past matches and the live match so far, then checks t
 ## Next
 
 - **On Azure, for judging:** `terraform apply` in [deploy/azure](deploy/azure/README.md) (the VM, Key Vault, Azure OpenAI, Azure ML), the repository public so the VM and the deploy workflow use it, and the team checked against the real model.
-- **Shirt numbers on footage:** the kickabout filmed with numbered bibs and every player's consent, its crops labelled, and our Azure ML model compared with the vision-language model on them (`matchvision.numbers_eval`); it replaces it only if it reads more and invents none.
+- **Shirt numbers on footage:** on 212 hand-checked crops of real players (SoccerTrack v2) the vision-language model read 72% of the legible numbers and our Azure ML model 7%, inventing none ([ai/vision/shirts](ai/vision/shirts/README.md#on-real-players-soccertrack-v2)), so the vision-language model stays. Still to do: the kickabout filmed with numbered bibs and every player's consent, as the same test on our own footage.
 - **The league's tracking feed:** the device reading the official tracking and event feeds for every first-team match, through the same contract.
