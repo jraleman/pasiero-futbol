@@ -2,17 +2,46 @@
 # Only what the judges use is reachable; everything else the stack publishes is blocked by the
 # NSG (deploy/azure/main.tf).
 
-# The dashboard, and Grafana through it (/grafana/)
-{$SITE} {
-	encode zstd gzip
-	header Strict-Transport-Security "max-age=31536000"
-	reverse_proxy p4n4-dashboard:8080 {
-		# The agents' answers stream as they're written
-		flush_interval -1
+# The browser's login (judge or admin, the app's passwords; deploy.sh hashes them from Key
+# Vault). A <video> or an <img> can't send the app's token, but the browser sends this one with
+# every request to the origin, so it guards the cameras too. The dashboard's nginx drops it
+# before p4n4-api and Grafana; the app's token travels in X-Upstream-Authorization.
+(login) {
+	basic_auth {
+		judge {$JUDGE_HASH}
+		admin {$ADMIN_HASH}
 	}
 }
 
-# The analysis room and its API (the staff token), the inbox, the cameras
+# The dashboard, Grafana through it (/grafana/), and the loops it plays (/cameras/)
+{$SITE} {
+	encode zstd gzip
+	header Strict-Transport-Security "max-age=31536000"
+	import login
+
+	# The loops as files (p4n4-clips), which the dashboard plays with the vision overlay
+	@loops {
+		method GET HEAD
+		path_regexp ^/cameras/[a-z0-9-]+\.mp4$
+	}
+	handle @loops {
+		uri strip_prefix /cameras
+		request_header -Authorization
+		reverse_proxy p4n4-clips:8080
+	}
+	handle /cameras/* {
+		respond 404
+	}
+
+	handle {
+		reverse_proxy p4n4-dashboard:8080 {
+			# The agents' answers stream as they're written
+			flush_interval -1
+		}
+	}
+}
+
+# The analysis room and its API (the staff token), the inbox, the cameras' streams
 {$SITE}:8443 {
 	encode zstd gzip
 	header Strict-Transport-Security "max-age=31536000"
@@ -24,25 +53,19 @@
 		reverse_proxy p4n4-mailpit:8025
 	}
 
-	# go2rtc: the two streams the dashboard shows, nothing else (its API can change its config)
+	# go2rtc, behind the login: the analysis room's two streams, nothing else (its API can
+	# change its config)
 	@cameras {
 		method GET
 		path /cameras/api/stream.mjpeg /cameras/api/frame.jpeg
 	}
 	handle @cameras {
+		import login
 		uri strip_prefix /cameras
+		request_header -Authorization
 		reverse_proxy p4n4-video:1984 {
 			flush_interval -1
 		}
-	}
-	# The loops as files (p4n4-clips), which the dashboard plays with the vision overlay
-	@loops {
-		method GET HEAD
-		path_regexp ^/cameras/[a-z0-9-]+\.mp4$
-	}
-	handle @loops {
-		uri strip_prefix /cameras
-		reverse_proxy p4n4-clips:8080
 	}
 	handle /cameras/* {
 		respond 404

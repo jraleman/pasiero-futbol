@@ -146,9 +146,10 @@ terraform -chdir=deploy/azure output -json judge_login
 
 | Open | Expect |
 |---|---|
-| `https://<fqdn>/` | A valid certificate (Let's Encrypt). The dashboard in the Premier League theme; sign in as `judge` |
+| `https://<fqdn>/` | A valid certificate (Let's Encrypt). The browser's login (`judge`), then the dashboard in the Premier League theme; sign in as `judge` again |
+| The dashboard's **Cameras** | The five loops playing, with the players' boxes; `curl -I https://<fqdn>/cameras/tv.mp4` without the login: `401` |
 | `https://<fqdn>:8443/analysis/` | The analysis room after any name and `analysis_token`: a live match at the Amex, *Demo data* in the header |
-| `https://<fqdn>/grafana/` | The *Match analysis* dashboard, without signing in |
+| `https://<fqdn>/grafana/` | The *Match analysis* dashboard, behind the browser's login only (Grafana's viewer is anonymous) |
 | `https://<fqdn>:8443/mail/` | The inbox, as `judge`: the half-time and match reports arrive as the match plays |
 | The dashboard's **Assistant** | An answer that streams the team's tool calls. The agent's log should say Azure OpenAI, not Ollama (below) |
 

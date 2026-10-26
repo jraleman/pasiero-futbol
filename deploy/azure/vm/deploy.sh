@@ -8,8 +8,9 @@
 #   3. The project's localhost links made public (HOME.md, the theme, the cameras)
 #   4. The stacks under p4n4-emu's nuc profile: the club's device, 4 cores and 14 GB; the
 #      recorded footage's matches and plays, when push.sh brought them
-#   5. The dashboard's image in the project's theme, then the front: Caddy, the dashboard,
-#      p4n4-api, and the judge's and admin's logins
+#   5. The dashboard's image in the project's theme, then the front: Caddy (the browser's login
+#      in front of the dashboard and the cameras), the dashboard, p4n4-api, and the judge's and
+#      admin's logins
 #
 # /etc/match-intelligence.env (cloud-init, from Terraform) says where: FQDN, KEY_VAULT,
 # AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_DEPLOYMENT, DASHBOARD_REF, P4N4_API_VERSION.
@@ -71,6 +72,7 @@ put "$f" INFLUXDB_PASSWORD "$influx_password"
 put "$f" INFLUXDB_TOKEN "$influx_token"
 put "$f" GRAFANA_PASSWORD "$grafana_password"
 put "$f" ANALYSIS_PUBLIC_URL "$PUBLIC/analysis/"
+put "$f" ANALYSIS_VIDEO_URL "$PUBLIC/cameras"
 put "$f" GRAFANA_ANONYMOUS true
 put "$f" GRAFANA_ALLOW_EMBEDDING true
 put "$f" GRAFANA_SUB_PATH /grafana/
@@ -97,8 +99,9 @@ for f in "$REPO/HOME.md" "$REPO/theme/brand.json"; do
         -e "s#http://localhost:8025/\{0,1\})#$PUBLIC/mail/)#g" "$f"
 done
 jq --arg host "$FQDN" '.defaults.host = $host' "$REPO/theme/brand.json" > /tmp/brand.json && mv /tmp/brand.json "$REPO/theme/brand.json"
-# The cameras through Caddy (https), not go2rtc's own port; the feed stays on localhost (p4n4-api)
-jq --arg base "$PUBLIC/cameras" \
+# The cameras through Caddy (https) on the dashboard's origin, behind its login; the feed stays
+# on localhost (p4n4-api)
+jq --arg base "https://$FQDN/cameras" \
     '.dashboard.cameras |= map(if .port then {id, name, url: ($base + .path)} else . end)' \
     "$REPO/.p4n4.json" > /tmp/p4n4.json && mv /tmp/p4n4.json "$REPO/.p4n4.json"
 
@@ -130,7 +133,11 @@ docker build -q --build-arg BRAND="$brand" -t "p4n4-dashboard:$brand" "$D"
 
 say "Front (Caddy, dashboard, p4n4-api)"
 mkdir -p -m 700 "$HOME/p4n4-api-data"
-export SITE="$FQDN" DASHBOARD_IMAGE="p4n4-dashboard:$brand" P4N4_PROJECT_DIR="$REPO" P4N4_API_VERSION \
+# The browser's login, the same passwords as the app's: bcrypt, on stdin (never in an argument)
+caddy_hash() { printf '%s\n' "$1" | docker run --rm -i "$(sed -n 's/^ *image: \(caddy:.*\)$/\1/p' "$HERE/compose.yml")" caddy hash-password; }
+JUDGE_HASH=$(caddy_hash "$judge")
+ADMIN_HASH=$(caddy_hash "$admin")
+export JUDGE_HASH ADMIN_HASH SITE="$FQDN" DASHBOARD_IMAGE="p4n4-dashboard:$brand" P4N4_PROJECT_DIR="$REPO" P4N4_API_VERSION \
     P4N4_API_DATA="$HOME/p4n4-api-data" P4N4_UID="$(id -u)" P4N4_GID="$(id -g)"
 docker compose -f "$HERE/compose.yml" -p front up -d --remove-orphans
 
@@ -146,7 +153,7 @@ add_user judge operator "$judge"
 
 say "Up"
 cat <<EOF
-  Dashboard      https://$FQDN/                  judge / (terraform output judge_login)
+  Dashboard      https://$FQDN/                  judge / (terraform output judge_login), twice: the browser, then the app
   Analysis room  $PUBLIC/analysis/       any name / the staff token
   Inbox          $PUBLIC/mail/           judge / the same password
   Agents         Azure OpenAI $AZURE_OPENAI_DEPLOYMENT, by the VM's managed identity

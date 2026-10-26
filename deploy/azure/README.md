@@ -15,10 +15,11 @@ The whole stack on one Azure VM, as the club's match device would run it, behind
 | **User-assigned identity** with a GitHub federated credential (optional) | The deploy workflow signs in with OIDC (no secret in GitHub) and may only run commands on this VM |
 
 ```
-browser ──https──► Caddy :443  ──► p4n4-dashboard (PL theme) ──► p4n4-api ──► the feed, the agent, InfluxDB
-                         │                        └─/grafana/──► Grafana (anonymous viewer)
+browser ──https──► Caddy :443 (the browser's login) ──► p4n4-dashboard (PL theme) ──► p4n4-api ──► the feed, the agent, InfluxDB
+                         │      │                                    └─/grafana/──► Grafana (anonymous viewer)
+                         │      └─/cameras/<id>.mp4──► p4n4-clips (the loops)
                          └ :8443 ─► /analysis/, /api/v1/ ──► ingest (the analysis room; the staff token)
-                                    /mail/ ──► Mailpit (the judges' login)  ·  /cameras/ ──► go2rtc's two streams
+                                    /mail/ ──► Mailpit (the judges' login)  ·  /cameras/ ──► go2rtc's two streams (the browser's login)
 agent (team.py) ──Entra ID (managed identity)──► Azure OpenAI          deploy.sh ──managed identity──► Key Vault
 ```
 
@@ -46,7 +47,7 @@ The first deploy builds the dashboard's image (Flutter, about 10 minutes) and pu
 
 | Open | Login |
 |---|---|
-| `https://<fqdn>/` | The dashboard, as user `judge` (the analyst's view: Home, the feed, Video, Grafana, the Assistant) |
+| `https://<fqdn>/` | The browser asks first (`judge` and the password from `judge_login`), then the dashboard, as the same user: the analyst's view (Home, the feed, Video, Grafana, the Assistant) |
 | `https://<fqdn>:8443/analysis/` | The analysis room: any name, and the staff token (`analysis_token`) |
 | `https://<fqdn>:8443/mail/` | The inbox: the staff's emails, the reports with the narrator's story (`judge`, the same password) |
 
@@ -76,10 +77,11 @@ Two weeks with the VM up day and night come to about $120; a month, about $250.
 
 ## Security
 
-- The VM answers on 80 (the redirect and Let's Encrypt), 443 and 8443. The agent (11434), n8n, InfluxDB, MQTT, Grafana's and go2rtc's own ports are published on the VM but closed by the NSG. go2rtc is reachable only for its two streams (its API can change its config).
+- The VM answers on 80 (the redirect and Let's Encrypt), 443 and 8443. The agent (11434), n8n, InfluxDB, MQTT, Grafana's, go2rtc's and p4n4-clips' own ports are published on the VM but closed by the NSG.
+- **Two logins on the dashboard.** Caddy's basic auth (`judge` or `admin`, the same passwords as the app's, bcrypt-hashed by `deploy.sh`) covers all of port 443: the app, Grafana and the camera loops. A `<video>` can't send the app's token, but the browser sends this login with every request to the origin, so no camera is reachable without it. The dashboard's nginx drops it before p4n4-api and Grafana; the app's own token travels in `X-Upstream-Authorization`. On 8443 the same login guards go2rtc's two streams, which the analysis room shows (go2rtc's API can change its config, so nothing else of it is reachable); the analysis room keeps its staff token and Mailpit its own login.
 - Secrets live in Key Vault and in Terraform's state (keep `terraform.tfstate` out of git and off shared disks; `.gitignore` has it), and on the VM in the layers' `.env` files (mode 600). Not in cloud-init's custom data, which the VM's metadata service serves to any process.
 - The judges' account is an operator: they can make the analyst's calls and edit plans, not manage users or stacks. The analysis room's staff token can too: everything is synthetic, and `iot/scripts/reset_demo.sh` puts it back.
-- The data is synthetic (`"synthetic": true` everywhere): no real match, player or footage is on the VM.
+- The matches are synthetic (`"synthetic": true` everywhere). The only real footage is the cameras' loops: four goals from SoccerTrack v2 (CC BY 4.0, university football in Japan, teams named by kit), which `vm/push.sh` copies with their analyses; no player is named.
 
 ## Tests
 

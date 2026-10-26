@@ -3,7 +3,8 @@
 The candidate footage (extras/config/clips.json "_candidates") cut into short
 clips around the moments that matter, without downloading whole matches:
 a fallback for the Video tab and the vision models if the kickabout isn't
-filmed, pending the organisers' answer on real footage.
+filmed (the organisers allow any footage in the demo pitch; each source's
+licence still applies).
 
     python3 extras/scripts/footage.py plan soccertrack      # the clips it would cut, their size, what fits
     python3 extras/scripts/footage.py soccertrack           # cut them (HF_TOKEN)
@@ -495,7 +496,7 @@ def dfl(args: argparse.Namespace, dry: bool = False) -> None:
 def terms(args: argparse.Namespace, what: str) -> None:
     if not args.accept_terms:
         raise SystemExit(f"off by default: read {what}, then run again with --accept-terms. "
-                         "It's unlikely to allow the public video; ask the organisers first.")
+                         "Its terms may not allow showing it in public: check before using it in the video.")
 
 
 # --- plan, status -------------------------------------------------------------------------------------------------
