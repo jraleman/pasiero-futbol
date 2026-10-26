@@ -6,7 +6,8 @@
 #      source (as vm/push.sh); each layer's .env the first time only (yours, mode 600), with
 #      the links in the emails on the Jetson's address
 #   2. The iot, ai and extras layers under the Jetson's overrides (iot.yml: the shared p4n4-net;
-#      ai.yml: Ollama on the GPU), then the footage's matches and plays (clips.py post)
+#      ai.yml: Ollama on the GPU; the team of agents on it, without Azure OpenAI), then the
+#      footage's matches and plays (clips.py post)
 #   3. p4n4-api from a p4n4 checkout's lib and api (P4N4_SRC), as scripts/dev runs it, on the
 #      Jetson's 127.0.0.1:8000: reach it with an SSH tunnel (below), the dev dashboard's proxy
 #      expects it on localhost:8000
@@ -56,6 +57,10 @@ ssh "$target" sh -eu <<EOF
 cd bh-albion
 sed -i "s#^ANALYSIS_PUBLIC_URL=.*#ANALYSIS_PUBLIC_URL=http://$host:8090/analysis/#" iot/.env
 sed -i -e "s#^ANALYSIS_URL=.*#ANALYSIS_URL=http://$host:8090/analysis/#" -e "s#^N8N_HOST=.*#N8N_HOST=$host#" ai/.env
+# Without Azure OpenAI, the team of agents on the Jetson's own model (team.py, AGENT_BACKEND=local)
+if ! grep -q '^AZURE_OPENAI_ENDPOINT=.' ai/.env; then
+    sed -i '/^AGENT_BACKEND=/d' ai/.env && echo AGENT_BACKEND=local >> ai/.env
+fi
 
 echo "== stacks"
 docker network inspect p4n4-net >/dev/null 2>&1 || docker network create --subnet 172.20.0.0/16 p4n4-net >/dev/null

@@ -909,7 +909,8 @@ async function tellStory() {
     if (state.story.matchId !== m.match_id) return;
     $("story").className = "story-text" + (audience === "broadcast" ? " captions" : "");
     $("story").dir = RTL.has(language) ? "rtl" : "auto";
-    const by = r.backend === "azure" ? `the narrator agent on Azure OpenAI${r.model ? ` (${esc(r.model)})` : ""}` : "the offline model (Ollama)";
+    const by = r.backend === "azure" ? `the narrator agent on Azure OpenAI${r.model ? ` (${esc(r.model)})` : ""}`
+      : r.backend === "local" ? `the narrator agent on the device's model${r.model ? ` (${esc(r.model)})` : ""}` : "the offline model (Ollama)";
     $("story").innerHTML = r.recap.split(/\n+/).filter(x => x.trim()).map(x => `<p>${esc(x)}</p>`).join("") +
       `<p class="by" dir="ltr">Written by ${by}${r.minute && r.status !== "full_time" ? ` at ${esc(r.minute)}'` : ""}, from the match device's numbers.</p>`;
   } catch (e) {

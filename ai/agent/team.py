@@ -21,14 +21,17 @@ writes it; without Azure, Ollama's model does, so recaps work offline too.
 
 Without Azure OpenAI, or without the framework's packages, agent.py answers alone on Ollama, as before: the fallback
 that runs on the club's device with no network. A question that fails on Azure before any text has streamed goes to
-Ollama too.
+Ollama too. AGENT_BACKEND=local runs the same team on the device instead, on Ollama's model through its
+OpenAI-compatible API: offline, the narrator agent writing the recaps too.
 
-    AGENT_BACKEND             auto (default: azure when AZURE_OPENAI_ENDPOINT and _DEPLOYMENT are set), azure, ollama
+    AGENT_BACKEND             auto (default: azure when AZURE_OPENAI_ENDPOINT and _DEPLOYMENT are set), azure,
+                              local (the team on Ollama's model), ollama (agent.py alone)
     AZURE_OPENAI_ENDPOINT     https://<resource>.openai.azure.com/
     AZURE_OPENAI_DEPLOYMENT   the chat model's deployment name, e.g. gpt-4.1-mini
     AZURE_OPENAI_API_KEY      a key; empty: Microsoft Entra ID (a managed identity on Azure, `az login` on a laptop)
     AZURE_OPENAI_API_VERSION  optional: the API version (the framework's default otherwise)
-    OLLAMA_MODEL              the fallback's model, for recaps (default: agent.py's AGENT_WARM_MODEL)
+    OLLAMA_MODEL              the fallback's model, for recaps, and the local team's (default: agent.py's AGENT_WARM_MODEL)
+    OLLAMA_URL                Ollama, for the local team (default http://ollama:11434)
 """
 
 from __future__ import annotations
@@ -48,6 +51,7 @@ ENDPOINT = os.environ.get("AZURE_OPENAI_ENDPOINT", "").strip()
 DEPLOYMENT = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "").strip()
 API_KEY = os.environ.get("AZURE_OPENAI_API_KEY", "").strip()
 API_VERSION = os.environ.get("AZURE_OPENAI_API_VERSION", "").strip()
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://ollama:11434").strip().rstrip("/")
 
 # Which of local_tools.py's tools each specialist gets (the orchestrator gets the specialists)
 SPECIALISTS = {
@@ -197,9 +201,12 @@ def setup(agent) -> None:
     """agent.py's load_team: keep its module (tools, labels, Ollama) for the agents and the recaps."""
     global AGENT
     AGENT = agent
-    if BACKEND not in ("auto", "azure", "ollama"):
-        raise ValueError(f"AGENT_BACKEND must be auto, azure or ollama, not {BACKEND!r}")
-    if enabled():
+    if BACKEND not in ("auto", "azure", "local", "ollama"):
+        raise ValueError(f"AGENT_BACKEND must be auto, azure, local or ollama, not {BACKEND!r}")
+    if BACKEND == "local":
+        import agent_framework  # noqa: F401
+        agent.log(f"team: orchestrator, {', '.join(SPECIALISTS)} on Ollama {local_model()} at {OLLAMA_URL}, offline")
+    elif enabled():
         import agent_framework  # noqa: F401  (the packages are there, or the team isn't loaded)
         agent.log(f"team: orchestrator, {', '.join(SPECIALISTS)} on Azure OpenAI {DEPLOYMENT} at {ENDPOINT}"
                   f" ({'key' if API_KEY else 'Entra ID'}); Ollama is the fallback")
@@ -209,10 +216,14 @@ def setup(agent) -> None:
 
 
 def enabled() -> bool:
-    """Whether the team answers: Azure OpenAI configured, and not turned off."""
-    if BACKEND == "ollama":
-        return False
+    """Whether the team answers: on the local model, or Azure OpenAI configured and not turned off."""
+    if BACKEND in ("ollama", "local"):
+        return BACKEND == "local"
     return bool(ENDPOINT and DEPLOYMENT)
+
+
+def local_model() -> str:
+    return os.environ.get("OLLAMA_MODEL", "").strip() or (AGENT.WARM_MODEL if AGENT else "") or "gemma4:e2b"
 
 
 # ── the agents ────────────────────────────────────────────────────────────────
@@ -231,6 +242,18 @@ def azure_client():
 
         _credential = DefaultAzureCredential()
     return OpenAIChatCompletionClient(credential=_credential, **kwargs)
+
+
+def local_client():
+    """A chat client on Ollama's OpenAI-compatible API: the team on the device, with no network."""
+    from agent_framework.openai import OpenAIChatCompletionClient
+
+    return OpenAIChatCompletionClient(model=local_model(), base_url=f"{OLLAMA_URL}/v1", api_key="ollama")
+
+
+def client_for_team():
+    """The team's chat client: Ollama's model with AGENT_BACKEND=local, else Azure OpenAI."""
+    return local_client() if BACKEND == "local" else azure_client()
 
 
 def _failed(result) -> bool:
@@ -336,11 +359,11 @@ def chat(body: dict, emit, client=None) -> dict:
     agent.py's /api/chat on the team: streams the orchestrator's answer and its agents' steps as Ollama chunks, and
     returns the last chunk with the whole reply. Raises Unavailable when it fails before any text has streamed.
     """
-    run = Run(emit, f"azure/{DEPLOYMENT or 'test'}")
+    run = Run(emit, f"ollama/{local_model()}" if BACKEND == "local" and client is None else f"azure/{DEPLOYMENT or 'test'}")
     token = RUN.set(run)
     started = time.monotonic()
     try:
-        reply = asyncio.run(_chat(body, run, client or azure_client()))
+        reply = asyncio.run(_chat(body, run, client or client_for_team()))
     except Exception as exc:
         if not run.streamed:
             raise Unavailable(f"{type(exc).__name__}: {exc}") from exc
@@ -432,10 +455,11 @@ def task(found: dict, part: str, audience: str, language: str, focus: int | None
             f"Facts (JSON, from the match device and the game plan):\n{json.dumps(found, ensure_ascii=False)}")
 
 
-def narrate_azure(prompt: str, client=None) -> str:
+def narrate_team(prompt: str, client=None) -> str:
+    """The narrator agent writes it: on Azure OpenAI, or on the local model (AGENT_BACKEND=local)."""
     from agent_framework import Agent
 
-    narrator = Agent(client=client or azure_client(), name="narrator", instructions=NARRATOR)
+    narrator = Agent(client=client or client_for_team(), name="narrator", instructions=NARRATOR)
     return asyncio.run(narrator.run(prompt)).text.strip()
 
 
@@ -474,13 +498,15 @@ def recap(params: dict, client=None) -> dict:
             return {**hit[1], "cached": True}
     prompt = task(found, o["part"], o["audience"], o["language"], o["focus"])
     started = time.monotonic()
-    backend = "azure" if (client is not None or enabled()) else "ollama"
+    backend = "ollama"
+    if client is not None or enabled():
+        backend = "local" if BACKEND == "local" and client is None else "azure"
     text = ""
-    if backend == "azure":
+    if backend in ("azure", "local"):
         try:
-            text = narrate_azure(prompt, client)
+            text = narrate_team(prompt, client)
         except Exception as exc:  # Azure unreachable, no quota: Ollama's model tells it instead
-            AGENT.log(f"the narrator can't write on Azure ({type(exc).__name__}: {exc}): recap on Ollama")
+            AGENT.log(f"the narrator agent can't write ({backend}: {type(exc).__name__}: {exc}): recap on Ollama")
             backend = "ollama"
     if backend == "ollama":
         text = narrate_ollama(prompt)
@@ -490,7 +516,8 @@ def recap(params: dict, client=None) -> dict:
               f"{' #' + str(o['focus']) if o['focus'] else ''} by {backend} in {time.monotonic() - started:.1f}s")
     result = {"match_id": match["match_id"], "minute": match.get("minute"), "status": match.get("status"),
               "part": o["part"], "audience": o["audience"], "language": o["language"], "focus": o["focus"],
-              "recap": text, "backend": backend, "model": DEPLOYMENT if backend == "azure" else None,
+              "recap": text, "backend": backend,
+              "model": {"azure": DEPLOYMENT, "local": local_model()}.get(backend),
               "synthetic_data": found.get("synthetic_data"), "cached": False}
     with _cache_lock:
         _cache[key] = (time.time(), result)

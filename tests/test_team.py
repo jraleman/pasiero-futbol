@@ -160,6 +160,16 @@ agent.agent_chat = original_chat
 saved = team.BACKEND
 team.BACKEND = "ollama"
 check("AGENT_BACKEND=ollama turns the team off", not team.enabled())
+team.BACKEND = "local"
+local = team.client_for_team()
+check("AGENT_BACKEND=local: the team on, on Ollama's OpenAI-compatible API", team.enabled()
+      and str(getattr(local, "base_url", "")).rstrip("/") == f"{team.OLLAMA_URL}/v1", getattr(local, "base_url", local))
+original_local = team.local_client
+team.local_client = lambda: client
+r = team.recap({"audience": "analyst", "language": "en"})
+check("…and the narrator agent writes the recaps on it", r["backend"] == "local" and r["model"] == team.local_model()
+      and r["recap"].startswith("RECAP"), r)
+team.local_client = original_local
 team.BACKEND = saved
 
 print("== recaps")
