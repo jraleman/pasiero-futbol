@@ -1,5 +1,94 @@
 {
- "_about": "Recorded footage for the Video tab and the vision models (extras/scripts/clips.py): sources (a local file or a URL with its SHA-1, the credit, the match and its two kits) and the ranges each camera loops. Empty until the team's own kickabout is filmed (numbered bibs, every player's consent).",
- "sources": {},
- "cameras": {}
+ "_about": "Recorded footage for the Video tab and the vision models (extras/scripts/clips.py): sources (a local file or a URL with its SHA-1, the credit, the match and its two kits) and the ranges each camera loops, with an optional crop ([x, y, width, height], 0-1 of the frame). For now four SoccerTrack v2 goals (CC BY 4.0, cut by extras/scripts/footage.py), each cropped to the end of the panorama where it's scored, pending the organisers' answer on real footage; the team's own kickabout (numbered bibs, every player's consent) replaces them once filmed. The teams are named by their kits; the scores are the goals the dataset labels (its player lists name each scorer's team and number, the first kick-off frame each team's kit). Each source's labels hold the dataset's goal (in the clip's seconds, posted as a labelled play and flagged by the overlay): the panoramas defeat the pitch calibration, so the models find no goal themselves.",
+ "_candidates": {
+  "_about": "Fallbacks if the kickabout isn't filmed: each waits for the organisers to allow real footage for auto-eventing (all match data stays synthetic). SoccerTrack v2 is in sources and cameras; the others are unused. extras/scripts/footage.py cuts clips around their goals and shots into extras/clips/footage/ (5 GB at most; SoccerNet and DFL only with --accept-terms). To use one, add it to sources (file footage/<source>/<clip>, its SHA-1 from footage/index.json, the credit, the match and kits) and a camera with its ranges.",
+  "soccertrack-v2": {
+   "page": "https://huggingface.co/datasets/atomscott/soccertrack-v2",
+   "licence": "CC BY 4.0 (LICENSE-DATA in https://github.com/AtomScott/SoccerTrack-v2): commercial use allowed, credit the authors and link the licence",
+   "access": "Hugging Face account, agree to share contact details; 145 GB, one file per half",
+   "footage": "10 university matches (M1-M10), 20 halves, a fixed panoramic camera over the whole pitch (25 fps; 4096×1080, M1 3840×1906, M9 3840×1504: the ends of the pitch are small at the edges); per-frame positions and shirt-number player ids (ground truth for matchvision.numbers_eval)",
+   "public_video": "allowed, with the credit",
+   "credit": ["SoccerTrack v2, A. Scott, I. Uchida, K. Kuroda, Y. Kim, K. Fujii (arXiv:2508.01802), CC BY 4.0"]
+  },
+  "soccernet": {
+   "page": "https://www.soccer-net.org/data",
+   "licence": "SoccerNet NDA, signed per repository on Hugging Face, each request approved by hand; the text is emailed on request (not read yet)",
+   "access": "Hugging Face account, the NDA, the SoccerNet team's approval",
+   "footage": "European top-flight broadcast matches, Premier League included",
+   "public_video": "unlikely: SoccerChat's dataset card, built from it, says the videos may not be redistributed, publicly hosted or used commercially; check the NDA",
+   "credit": []
+  },
+  "dfl-bundesliga-data-shootout": {
+   "page": "https://www.kaggle.com/competitions/dfl-bundesliga-data-shootout/data",
+   "licence": "Kaggle competition rules (not read yet): Kaggle's standard rules limit competition data to the competition's purpose",
+   "access": "Kaggle account, accept the competition's rules",
+   "footage": "Bundesliga broadcast-style clips with labelled passes, challenges and throw-ins (2022)",
+   "public_video": "unlikely: check the competition's rules and the DFL's",
+   "credit": []
+  }
+ },
+ "sources": {
+  "soccertrack-m3": {
+   "file": "footage/soccertrack/118575-1-06m41.mp4",
+   "sha1": "c88432c31614ea58888b89a60ca70e896943cfbe",
+   "page": "https://huggingface.co/datasets/atomscott/soccertrack-v2",
+   "credit": ["SoccerTrack v2, A. Scott, I. Uchida, K. Kuroda, Y. Kim, K. Fujii (arXiv:2508.01802), CC BY 4.0", "https://huggingface.co/datasets/atomscott/soccertrack-v2, cut and cropped"],
+   "imgsz": 2560,
+   "match": {
+    "match_id": "SOCCERTRACK-M3", "competition": "SoccerTrack v2 (university football, Japan)",
+    "home": {"code": "M3KHA", "name": "M3 Khaki"}, "away": {"code": "M3BLU", "name": "M3 Blue"},
+    "score": {"home": 0, "away": 3}, "score_note": "the goals SoccerTrack v2 labels; teams named by their kits",
+    "kits": {"home": "#B9AD84", "away": "#2D63C9"}
+   },
+   "labels": [{"play_id": "PL-20261025-750641", "t": 13.9, "period": 1, "type": "goal", "team": "away", "players": [{"team": "away", "number": 24, "role": "shooter"}]}]
+  },
+  "soccertrack-m4": {
+   "file": "footage/soccertrack/118576-1-05m54.mp4",
+   "sha1": "3b2a982878343109db458d9db88b84c5d424246a",
+   "page": "https://huggingface.co/datasets/atomscott/soccertrack-v2",
+   "credit": ["SoccerTrack v2, A. Scott, I. Uchida, K. Kuroda, Y. Kim, K. Fujii (arXiv:2508.01802), CC BY 4.0", "https://huggingface.co/datasets/atomscott/soccertrack-v2, cut and cropped"],
+   "imgsz": 2560,
+   "match": {
+    "match_id": "SOCCERTRACK-M4", "competition": "SoccerTrack v2 (university football, Japan)",
+    "home": {"code": "M4WHI", "name": "M4 White"}, "away": {"code": "M4BLU", "name": "M4 Blue"},
+    "score": {"home": 0, "away": 5}, "score_note": "the goals SoccerTrack v2 labels; teams named by their kits",
+    "kits": {"home": "#E4E8EE", "away": "#2D63C9"}
+   },
+   "labels": [{"play_id": "PL-20261025-760554", "t": 13.3, "period": 1, "type": "goal", "team": "away", "players": [{"team": "away", "number": 6, "role": "shooter"}]}]
+  },
+  "soccertrack-m7": {
+   "file": "footage/soccertrack/128057-2-35m42.mp4",
+   "sha1": "6ef1c2ffba025bdd79e80418f698a3250e1c2aee",
+   "page": "https://huggingface.co/datasets/atomscott/soccertrack-v2",
+   "credit": ["SoccerTrack v2, A. Scott, I. Uchida, K. Kuroda, Y. Kim, K. Fujii (arXiv:2508.01802), CC BY 4.0", "https://huggingface.co/datasets/atomscott/soccertrack-v2, cut and cropped"],
+   "imgsz": 2560,
+   "match": {
+    "match_id": "SOCCERTRACK-M7", "competition": "SoccerTrack v2 (university football, Japan)",
+    "home": {"code": "M7WHI", "name": "M7 White"}, "away": {"code": "M7BLU", "name": "M7 Blue"},
+    "score": {"home": 2, "away": 3}, "score_note": "the goals SoccerTrack v2 labels; teams named by their kits",
+    "kits": {"home": "#E4E8EE", "away": "#2D63C9"}
+   },
+   "labels": [{"play_id": "PL-20261025-573542", "t": 14.0, "period": 2, "type": "goal", "team": "home", "players": [{"team": "home", "number": 13, "role": "shooter"}]}]
+  },
+  "soccertrack-m9": {
+   "file": "footage/soccertrack/132831-1-01m52.mp4",
+   "sha1": "2cf8748b858c85cf46b228ea6711c67143a56a85",
+   "page": "https://huggingface.co/datasets/atomscott/soccertrack-v2",
+   "credit": ["SoccerTrack v2, A. Scott, I. Uchida, K. Kuroda, Y. Kim, K. Fujii (arXiv:2508.01802), CC BY 4.0", "https://huggingface.co/datasets/atomscott/soccertrack-v2, cut and cropped"],
+   "imgsz": 2560,
+   "match": {
+    "match_id": "SOCCERTRACK-M9", "competition": "SoccerTrack v2 (university football, Japan)",
+    "home": {"code": "M9YEL", "name": "M9 Yellow"}, "away": {"code": "M9BLU", "name": "M9 Blue"},
+    "score": {"home": 5, "away": 0}, "score_note": "the goals SoccerTrack v2 labels; teams named by their kits",
+    "kits": {"home": "#E3D96F", "away": "#2D63C9"}
+   },
+   "labels": [{"play_id": "PL-20261025-310152", "t": 13.3, "period": 1, "type": "goal", "team": "home", "players": [{"team": "home", "number": 33, "role": "shooter"}]}]
+  }
+ },
+ "cameras": {
+  "soccertrack-m3": {"source": "soccertrack-m3", "ranges": [[0, 21.8]], "crop": [0.05, 0.08, 0.30, 0.64]},
+  "soccertrack-m4": {"source": "soccertrack-m4", "ranges": [[0, 21.3]], "crop": [0.05, 0.08, 0.30, 0.64]},
+  "soccertrack-m7": {"source": "soccertrack-m7", "ranges": [[0, 21.9]], "crop": [0.66, 0.03, 0.31, 0.66]},
+  "soccertrack-m9": {"source": "soccertrack-m9", "ranges": [[0, 21.2]], "crop": [0.44, 0.06, 0.50, 0.72]}
+ }
 }

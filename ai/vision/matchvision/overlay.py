@@ -44,6 +44,9 @@ dashboard's README, "Vision overlay"):
     give its "ball" too ([seconds of the source, x, y], 0-1 of the frame),
     where the ball really is (e.g. a dataset's track), drawn in place of
     the detector's.
+  - A camera's "crop" ([x, y, width, height], 0-1 of the source's frame:
+    the part of the picture clips.py keeps, e.g. one end of a panorama)
+    puts the boxes in the crop's frame; who's outside it isn't drawn.
 """
 
 from __future__ import annotations
@@ -374,6 +377,29 @@ def camera_recording(frames, ranges, kinds: dict[str, int], ball_kind: int, aler
     }, ids
 
 
+def cropped(recording: dict, crop: list[float]) -> dict:
+    """[recording] as the camera's crop shows it ([x, y, width, height], 0-1 of the frame): each box in the
+    crop's frame, clamped to it; a box whose centre is outside it is dropped."""
+    x, y, w, h = crop
+
+    def inside(box: list) -> list | None:
+        x1, y1, x2, y2 = (box[0] - x) / w, (box[1] - y) / h, (box[2] - x) / w, (box[3] - y) / h
+        if not (0 <= (x1 + x2) / 2 < 1 and 0 <= (y1 + y2) / 2 < 1):
+            return None
+        return [round(max(0.0, x1), 4), round(max(0.0, y1), 4), round(min(1.0, x2), 4), round(min(1.0, y2), 4)]
+
+    def keep(samples: list) -> list:
+        out = []
+        for t, items in samples:
+            moved = [(item, inside(item[1:5])) for item in items]
+            out.append([t, [[item[0], *box, *item[5:]] for item, box in moved if box]])
+        return out
+
+    width = round(recording["width"] * w / h)
+    return {**recording, "width": width - width % 2, "boxes": keep(recording["boxes"]),
+            "objects": keep(recording["objects"])}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="matchvision.overlay", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -417,6 +443,8 @@ def main(argv: list[str] | None = None) -> int:
         frames, alerts, midpoints = cache_by_source[name]
         recording, ids = camera_recording(frames, spec["ranges"], {side: kinds[(name, side)] for side in ("home", "away")},
                                           ball_kind, alerts, midpoints, spec.get("moments"), spec.get("ball"))
+        if spec.get("crop"):
+            recording = cropped(recording, spec["crop"])
         cameras[camera] = {"recording": recording}
         used |= {b[3] for b in recording["behaviors"]}
         missing = [a["alert_id"] for a in alerts if "moments" not in spec and a["type"] in BEHAVIORS

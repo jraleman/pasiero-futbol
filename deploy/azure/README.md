@@ -1,6 +1,6 @@
 # Match Intelligence on Azure
 
-The whole stack on one Azure VM, as the club's match device would run it, behind HTTPS, for anyone to open. From Terraform, in one `apply`. Step by step from a new subscription: [GUIDE.md](GUIDE.md); where it stands: [REPORT.md](REPORT.md).
+The whole stack on one Azure VM, as the club's match device would run it, behind HTTPS and a password login: a private deployment for the judges, not a public one. From Terraform, in one `apply`. Step by step from a new subscription: [GUIDE.md](GUIDE.md); where it stands: [REPORT.md](REPORT.md).
 
 | Azure | What it does here |
 |---|---|

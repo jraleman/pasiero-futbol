@@ -43,6 +43,30 @@
         "name": "Broadcast (live match)",
         "port": 1984,
         "path": "/api/stream.mjpeg?src=tv"
+      },
+      {
+        "id": "soccertrack-m3",
+        "name": "SoccerTrack · M3 Khaki – M3 Blue",
+        "port": 1984,
+        "path": "/api/stream.mjpeg?src=soccertrack-m3"
+      },
+      {
+        "id": "soccertrack-m4",
+        "name": "SoccerTrack · M4 White – M4 Blue",
+        "port": 1984,
+        "path": "/api/stream.mjpeg?src=soccertrack-m4"
+      },
+      {
+        "id": "soccertrack-m7",
+        "name": "SoccerTrack · M7 White – M7 Blue",
+        "port": 1984,
+        "path": "/api/stream.mjpeg?src=soccertrack-m7"
+      },
+      {
+        "id": "soccertrack-m9",
+        "name": "SoccerTrack · M9 Yellow – M9 Blue",
+        "port": 1984,
+        "path": "/api/stream.mjpeg?src=soccertrack-m9"
       }
     ]
   }

@@ -17,8 +17,11 @@ service: (cd extras && docker compose restart video).
 extras/config/clips.json lists the sources (URL, SHA-1, author, licence, the
 credit, one string per line, the match and its two kits) and which
 parts of a source each camera loops: news reports cut to interviews, so a
-camera's ranges keep only football. fetch reuses a source already in
-extras/clips with the right SHA-1, downloads it otherwise, and writes
+camera's ranges keep only football. A camera's "crop" ([x, y, width,
+height], 0-1 of the source's frame) frames part of the picture, e.g. one end
+of a panorama, and the overlay crops its boxes to match. fetch reuses a
+source already in extras/clips with the right SHA-1, downloads it otherwise
+(a source without a URL, like footage.py's clips, must be on disk), and writes
 extras/clips/<camera>.mp4 (720p H.264, no sound), nothing burned in: the
 footage is credited, as CC BY asks, in the proposal, the deck and the README
 (the credit in the manifest), not over the picture. video.sh then loops it
@@ -27,7 +30,8 @@ the footage stays on this disk.
 
 analyze runs python -m matchvision.analyze on each source in the vision image
 (brighton-vision:dev, README "The vision pipeline"), 2 frames a second, with
-the manifest's kits, keeping the detection stage (frames.json) for the
+the manifest's kits (and a source's "imgsz", the detection size a wide
+panorama needs), keeping the detection stage (frames.json) for the
 overlay: extras/clips/analysis/<source>/ (alerts.json, summary.json,
 keyframes/). A source already analysed is skipped; --force does it again.
 
@@ -35,8 +39,12 @@ post posts each source's match as a scouting match ("scouting": true:
 neither side is ours, no game plan applies), at full time with the
 manifest's score, and the plays the models found: a contact and a fall is a
 foul (whether it was given, the video doesn't say), each with its keyframe,
-on the camera whose loop shows it ("source": "video"). Dated as if the clip
-ended now, so they top the feed; posting again updates them.
+on the camera whose loop shows it ("source": "video"). A source's "labels"
+(plays a person labelled, e.g. a dataset's goals: {"play_id", "t" in the
+source's seconds, "period", "type", "team", "players"}) are posted too
+("source": "label", the frame the camera shows then as evidence), and the
+overlay flags them like the models' plays. Dated as if the clip ended now, so
+they top the feed; posting again updates them.
 
 overlay writes extras/clips/vision.json (.p4n4.json dashboard.vision) for
 every footage camera: the players the analyses found, by team, the ball, and
@@ -91,6 +99,9 @@ def source_file(name: str, source: dict) -> Path:
     path = CLIPS / source["file"]
     if path.is_file() and sha1(path) == source["sha1"]:
         return path
+    if not source.get("url"):
+        raise SystemExit(f"{name}: {path.relative_to(PROJECT)} is missing or changed, and has no URL "
+                         "(cut it again: extras/scripts/footage.py)")
     print(f"{name}: downloading {source['page']}")
     part = path.with_suffix(path.suffix + ".part")
     request = urllib.request.Request(source["url"], headers={"User-Agent": USER_AGENT})
@@ -105,11 +116,11 @@ def source_file(name: str, source: dict) -> Path:
 
 
 def cut(camera: str, spec: dict, src: Path) -> None:
-    """extras/clips/<camera>.mp4: the camera's ranges of its source, joined (the tile names the camera)."""
+    """extras/clips/<camera>.mp4: the camera's ranges of its source, joined and cropped (the tile names the camera)."""
     ranges = spec["ranges"]
     parts = "".join(f"[0:v]trim=start={a}:end={b},setpts=PTS-STARTPTS[p{i}];" for i, (a, b) in enumerate(ranges))
     joined = "".join(f"[p{i}]" for i in range(len(ranges))) + f"concat=n={len(ranges)}:v=1:a=0[cat];"
-    graph = parts + joined + "[cat]scale=-2:720,setsar=1[out]"
+    graph = parts + joined + f"[cat]{crop_filter(spec)}scale=-2:720,setsar=1[out]"
     out = CLIPS / f"{camera}.mp4"
     subprocess.run(
         ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(src), "-filter_complex", graph,
@@ -208,6 +219,32 @@ def as_play(doc: dict, site: str, match: dict, camera: str, timestamp: str) -> d
     return out
 
 
+def label_play(label: dict, site: str, match: dict, camera: str, timestamp: str) -> dict:
+    """A source's labelled play (e.g. a dataset's goal) as a club play (contract 0.1): labelled, so certain."""
+    return {"schema": "p4n4.team.play/0.1", "play_id": label["play_id"], "site_id": site,
+            "match_id": match["match_id"], "camera_id": camera, "timestamp": timestamp,
+            "period": label.get("period", 1), "match_time_s": float(label["t"]), "type": label["type"],
+            "team": label["team"], "players": label.get("players", []), "details": {}, "confidence": 1.0,
+            "source": "label", "synthetic": False}
+
+
+def crop_filter(spec: dict) -> str:
+    """The camera's crop as an ffmpeg filter (with its trailing comma), or nothing."""
+    if not spec.get("crop"):
+        return ""
+    x, y, w, h = spec["crop"]
+    return f"crop=w=iw*{w}:h=ih*{h}:x=iw*{x}:y=ih*{y},"
+
+
+def still(src: Path, t: float, spec: dict) -> bytes:
+    """Second t of the source as the camera shows it, a 720p JPEG: a labelled play's evidence."""
+    return subprocess.run(
+        ["ffmpeg", "-hide_banner", "-loglevel", "error", "-ss", str(t), "-i", str(src), "-frames:v", "1",
+         "-vf", f"{crop_filter(spec)}scale=-2:720", "-f", "image2pipe", "-c:v", "mjpeg", "-q:v", "3", "-"],
+        check=True, capture_output=True,
+    ).stdout
+
+
 def post(args: argparse.Namespace) -> None:
     """Each source's match, for scouting (neither side ours), with the plays the models found and their keyframes."""
     manifest, env = load(), dotenv(PROJECT / "iot/.env")
@@ -240,11 +277,19 @@ def post(args: argparse.Namespace) -> None:
                            (start + timedelta(seconds=t)).isoformat(timespec="milliseconds"))
             if play:
                 plays.append((doc, play))
+        for label in source.get("labels", []):
+            t = float(label["t"])
+            plays.append((None, label_play(label, site, match, camera_at(manifest, name, t),
+                                           (start + timedelta(seconds=t)).isoformat(timespec="milliseconds"))))
         if plays:
             result = call("POST", f"{url}/api/v1/plays", token, json.dumps([p for _, p in plays]).encode(), "application/json")
             if result.get("rejected"):
                 print(f"{name}: rejected {result['rejected']}")
         for doc, play in plays:
+            if doc is None:
+                image = still(CLIPS / source["file"], play["match_time_s"], manifest["cameras"][play["camera_id"]])
+                call("PUT", f"{url}/api/v1/evidence/{play['play_id']}", token, image, "image/jpeg")
+                continue
             keyframe = analysis / "keyframes" / f"{doc['alert_id']}.jpg"
             if keyframe.is_file():
                 call("PUT", f"{url}/api/v1/evidence/{play['play_id']}", token, keyframe.read_bytes(), "image/jpeg")
@@ -278,7 +323,9 @@ def analyze(args: argparse.Namespace) -> None:
         print(f"{name}: analysing {source['file']} (about 5 s of video a minute)", flush=True)
         vision("4g", "matchvision.analyze", f"/clips/{source['file']}", "--out", f"/clips/analysis/{name}",
                "--match-id", match["match_id"], "--home-kit", match["kits"]["home"], "--away-kit", match["kits"]["away"],
-               "--camera", next(c for c, s in manifest["cameras"].items() if s["source"] == name), "--keep-frames")
+               "--camera", next(c for c, s in manifest["cameras"].items() if s["source"] == name), "--keep-frames",
+               # A wide panorama's own detection size, as matchvision.dense reads it
+               *(["--imgsz", str(source["imgsz"])] if source.get("imgsz") else []))
         summary = json.loads((folder / "summary.json").read_text())
         found = ", ".join(f"{a['type']} {a['t']:.1f}s" for a in summary["alerts"]) or "nothing"
         print(f"{name}: {found} ({summary['analysis_seconds']:.0f} s)")
@@ -309,6 +356,13 @@ def moments(manifest: dict, site: str) -> dict[str, list[dict]]:
             out[camera].append({"t": t, "until": round(min(t + 6, end - 0.1), 2), "type": PLAY_TYPES[doc["type"]],
                                 "confidence": doc["confidence"], "feed": f"{site}:{play_id(doc['alert_id'])}",
                                 "alert": doc["alert_id"]})
+        # The source's labelled plays: the overlay frames who's near the ball then (no alert names them)
+        for label in manifest["sources"][name].get("labels", []):
+            t = float(label["t"])
+            camera = camera_at(manifest, name, t)
+            end = next((b for a, b in manifest["cameras"][camera]["ranges"] if a <= t < b), t + 6)
+            out[camera].append({"t": t, "until": round(min(t + 6, end - 0.1), 2), "type": label["type"],
+                                "confidence": 1.0, "feed": f"{site}:{label['play_id']}"})
     return out
 
 
