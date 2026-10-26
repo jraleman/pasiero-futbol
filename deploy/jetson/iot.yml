@@ -1,0 +1,6 @@
+# On the Jetson, over iot/docker-compose.yml: p4n4-net is made beforehand (up.sh), since another
+# p4n4 project on the device may own it already, and Compose won't take over another's network.
+networks:
+  p4n4-net:
+    external: true
+    name: p4n4-net

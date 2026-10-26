@@ -1,0 +1,8 @@
+# On the Jetson, over ai/docker-compose.yml: Ollama on the GPU, through NVIDIA's container runtime
+# (JetPack's nvidia-container-toolkit). CPU and GPU share the board's memory.
+services:
+  ollama:
+    runtime: nvidia
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility

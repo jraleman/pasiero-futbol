@@ -62,6 +62,8 @@ python3 extras/scripts/clips.py post # optional: our own footage's matches (need
 
 **On Azure,** the same stack on a VM behind HTTPS, with Azure OpenAI by managed identity and the secrets in Key Vault: `cd deploy/azure && terraform apply` ([deploy/azure/README.md](deploy/azure/README.md)).
 
+**On an NVIDIA Jetson** (an Orin Nano as the club's match device, Ollama on its GPU): `deploy/jetson/up.sh <user>@<host>` from this machine copies the project, the loops and their analyses, starts the three layers and p4n4-api there; the header of [up.sh](deploy/jetson/up.sh) says how to reach the dashboard. The board's 8 GB are shared by CPU and GPU, so stop whatever else runs on it first.
+
 Without the CLI, start the layers in that order: `(cd iot && docker compose up -d) && (cd ai && docker compose up -d) && (cd extras && docker compose up -d)`. Like every p4n4 project, this one uses the fixed `p4n4-*` container names and ports, so stop any other p4n4 project on the host first. The simulator plays and measures the past matches first, about 10 s each, so the season fills in over the first minute or two.
 
 | Open | For | Login |
