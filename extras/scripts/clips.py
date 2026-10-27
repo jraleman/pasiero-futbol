@@ -127,7 +127,9 @@ def cut(camera: str, spec: dict, src: Path) -> None:
     subprocess.run(
         ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(src), "-filter_complex", graph,
          "-map", "[out]", "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p",
-         "-movflags", "+faststart", str(out)],
+         # A keyframe every second: the dashboard seeks each loop to its shared clock, and a seek decodes from the
+         # keyframe before it (x264's default, every 10 s, kept the big panoramas black for seconds)
+         "-force_key_frames", "expr:gte(t,n_forced*1)", "-movflags", "+faststart", str(out)],
         check=True,
     )
     seconds = sum(b - a for a, b in ranges)
