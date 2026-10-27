@@ -27,7 +27,8 @@
      into magenta, along the top of every page */
   --brand: #8e3a62;
   --highlight: #ff7a4f;
-  --bar: linear-gradient(90deg, #d9553a, #f2774f 30%, #c07198 65%, #b0517b);
+  /* The banner's diagonal stripes */
+  --bar: repeating-linear-gradient(115deg, #d9553a 0 18px, #f2774f 18px 30px, #c07198 30px 48px, #b0517b 48px 60px);
   --accent: #f2774f;
   --on-accent: #160f12;
   --mono: "Plex Mono", ui-monospace, monospace;
@@ -35,6 +36,8 @@
   --body: Nunito, system-ui, sans-serif;
   /* The wordmark in the room's header: Pasiero, FUTBOL under it */
   --wordmark-case: none;
+  /* The mascot's face, in cream on dark surfaces */
+  --mascot: url(marks/mark-white.svg);
 }
 @media (prefers-color-scheme: light) {
   :root:where(:not([data-theme="dark"])) {
@@ -51,6 +54,7 @@
     --highlight: #c2452a;
     --accent: #b5432a;
     --on-accent: #ffffff;
+    --mascot: url(marks/mark.svg);
   }
 }
 /* Paper (the reports): always light */
@@ -59,3 +63,39 @@ html.paper {
   --bg: #efe6e4; --panel: #ffffff; --raise: #f8f1ef; --line: #e9dbda; --line-2: #d7c3c4;
   --ink: #1e1214; --ink-2: #4a3438; --muted: #7a6266; --brand: #9c3f6c; --accent: #b5432a; --on-accent: #fff;
 }
+
+/* ── Playful: the banner's tactics doodles, its chalk underline, its stripes and the mascot ──────────────────
+   (the pages' own styles come after this file, so these rules are one step more specific) */
+
+/* Every section's heading, underlined in chalk */
+:root .card > header h2, :root section.card h2, html.paper h2 {
+  padding-bottom: 7px; background: url(art/swoosh.svg) no-repeat left bottom / 64px 9px;
+}
+/* The score, on the hat band's stripes */
+:root .score .goals, :root .scoreline .goals {
+  background: repeating-linear-gradient(115deg, transparent 0 9px, rgba(255, 255, 255, .09) 9px 18px), var(--brand);
+}
+/* The header's wordmark: Pasiero, then — FUTBOL — as on the banner */
+:root .brand span b { display: flex; align-items: center; gap: 5px; margin-top: 3px; letter-spacing: .22em; }
+:root .brand span b::before, :root .brand span b::after { content: ""; width: 8px; height: 1.5px; background: currentColor; opacity: .6; }
+/* The plan's and the season's header: the doodles between the picker and the way back */
+:root .bar { background: url(art/doodles.svg) no-repeat right 240px center / auto 92%, var(--panel); }
+/* Nothing to show: the mascot says so, in a speech bubble */
+:root .empty {
+  position: relative; isolation: isolate; min-height: 44px; padding: 10px 14px 10px 62px; margin: 6px 0;
+  background: var(--mascot) no-repeat 8px center / 40px auto;
+}
+:root .empty::after {
+  content: ""; position: absolute; left: 54px; top: 6px; bottom: 6px; right: 0; z-index: -1;
+  border: 1.5px dashed var(--line-2); border-radius: 14px;
+}
+:root li.empty { list-style: none; }
+/* Signing in: the mascot, big, greets you; the doodles behind */
+:root #signin { background: url(art/doodles.svg) no-repeat right -40px top -30px / 260px auto, var(--panel); }
+:root #signin img.mark { width: 92px; height: auto; margin-bottom: 4px; transform: rotate(-6deg); }
+:root #signin .greeting {
+  display: inline-block; margin: 0 0 12px; padding: 8px 14px; border-radius: 16px 16px 16px 4px;
+  background: var(--accent); color: var(--on-accent); font: 600 15px/1.3 var(--display);
+}
+/* The reports: the doodles in the sheet's corner */
+html.paper .sheet { background: url(art/doodles.svg) no-repeat right 8mm bottom 8mm / 60mm auto, #fff; }

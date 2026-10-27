@@ -8,7 +8,7 @@ The project's themes (themes/<id>/) and the one in use.
 
 A theme is a folder named by its brand id:
   brand.json, logo-*.png, icon.png, fonts/, grafana/   p4n4-dashboard's theme → theme/ (Grafana's icons are mounted from there)
-  site/theme.css, site/marks/                         the analysis room's colours, fonts and mark → iot/ingest/analysis/
+  site/theme.css, site/marks/, site/art/              the analysis room's colours, fonts, mark and art → iot/ingest/analysis/
   theme.json                                          its names, its bar and its emails' colours → iot/ingest/analysis/brand.js,
                                                       Grafana's header (build_dashboard.py) and n8n's emails (ai/config/n8n/build.py)
   assets.py, src/                                     how its images are drawn (design time; run assets.py, then use)
@@ -32,7 +32,8 @@ THEMES = ROOT / "themes"
 ACTIVE = ROOT / "theme"
 SITE = ROOT / "iot" / "ingest" / "analysis"
 NOT_DASHBOARD = ("site", "src", "assets.py", "theme.json", "__pycache__")
-BRAND_KEYS = ("name", "title", "mark", "wordmark", "letterhead")
+BRAND_KEYS = ("name", "title", "mark", "wordmark", "letterhead", "greeting")
+SITE_DIRS = ("marks", "art")  # a theme without art/ leaves none in place
 
 
 def active() -> str:
@@ -45,7 +46,7 @@ def names() -> list[str]:
 
 def brand_js(theme: Path) -> str:
     spec = json.loads((theme / "theme.json").read_text(encoding="utf-8"))
-    names = {k: spec[k] for k in BRAND_KEYS}
+    names = {k: spec[k] for k in BRAND_KEYS if k in spec}
     return (f"// The theme's names, from themes/{theme.name}/theme.json (iot/scripts/theme.py writes it: edit the theme)\n"
             f"const BRAND = {json.dumps(names, ensure_ascii=False, indent=1)};\n")
 
@@ -57,12 +58,14 @@ def use(name: str) -> None:
     shutil.rmtree(ACTIVE, ignore_errors=True)
     shutil.copytree(theme, ACTIVE, ignore=shutil.ignore_patterns(*NOT_DASHBOARD))
     shutil.copyfile(theme / "site" / "theme.css", SITE / "theme.css")
-    shutil.rmtree(SITE / "marks", ignore_errors=True)
-    shutil.copytree(theme / "site" / "marks", SITE / "marks")
+    for sub in SITE_DIRS:
+        shutil.rmtree(SITE / sub, ignore_errors=True)
+        if (theme / "site" / sub).is_dir():
+            shutil.copytree(theme / "site" / sub, SITE / sub)
     (SITE / "brand.js").write_text(brand_js(theme), encoding="utf-8")
     for script in (ROOT / "iot" / "scripts" / "build_dashboard.py", ROOT / "ai" / "config" / "n8n" / "build.py"):
         subprocess.run([sys.executable, str(script)], check=True, stdout=subprocess.DEVNULL)
-    print(f"theme {name}: theme/, iot/ingest/analysis/theme.css, brand.js and marks/, the Grafana dashboard and the "
+    print(f"theme {name}: theme/, iot/ingest/analysis/theme.css, brand.js, marks/ and art/, the Grafana dashboard and the "
           "n8n workflows. Restart the iot and ai layers (N8N_REIMPORT_WORKFLOWS=true once) and rebuild the dashboard's image.")
 
 
@@ -79,7 +82,11 @@ def check() -> list[str]:
             compare(a / sub, b / sub)
 
     compare(theme, ACTIVE)
-    compare(theme / "site" / "marks", SITE / "marks")
+    for sub in SITE_DIRS:
+        if (theme / "site" / sub).is_dir():
+            compare(theme / "site" / sub, SITE / sub)
+        elif (SITE / sub).exists():
+            problems.append(f"iot/ingest/analysis/{sub}/: not the theme's (it has none)")
     if not filecmp.cmp(theme / "site" / "theme.css", SITE / "theme.css", shallow=False):
         problems.append("iot/ingest/analysis/theme.css: not the theme's")
     if (SITE / "brand.js").read_text(encoding="utf-8") != brand_js(theme):

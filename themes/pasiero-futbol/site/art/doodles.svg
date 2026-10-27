@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 260"><title>Tactics doodles</title>
+<g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" opacity=".55">
+<path d="M48 168 C70 92 150 50 232 66" stroke="#d9553a"/>
+<path d="M214 52 L234 66 L216 82" stroke="#d9553a"/>
+<path d="M272 30 l18 18 M290 30 l-18 18" stroke="#b0517b"/>
+<path d="M352 104 l18 18 M370 104 l-18 18" stroke="#d9553a"/>
+<path d="M300 190 l16 16 M316 190 l-16 16" stroke="#b0517b"/>
+<circle cx="30" cy="58" r="10" stroke="#b0517b"/>
+<circle cx="150" cy="214" r="9" stroke="#c07198"/>
+<path d="M210 132 C250 150 286 150 318 170 S372 214 396 232" stroke="#c07198" stroke-dasharray="2 14"/>
+<circle cx="398" cy="234" r="6" stroke="#c07198"/>
+</g></svg>

@@ -4,7 +4,8 @@
  "mark": "Pasiero Futbol",
  "wordmark": "Pasiero<b>Futbol</b>",
  "letterhead": "Pasiero Futbol · Match intelligence",
+ "greeting": "¡Hola! I'm Pasiero. Sign in and let's watch the match together.",
  "bar": ["#d9553a", "#f2774f 30%", "#c07198 65%", "#b0517b"],
- "grafana": {"tint": "#9c3f6c"},
+ "grafana": {"tint": "#9c3f6c", "art": "doodles.svg"},
  "email": {"brand": "#b5432a", "band": "#1e1214", "ink": "#1e1214", "muted": "#7a6266", "line": "#e9dbda", "bg": "#f8f1ef", "font": "Nunito"}
 }

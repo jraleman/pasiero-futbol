@@ -9,7 +9,7 @@
   "light": "logo-light.png",
   "dark": "logo-dark.png"
  },
- "platform": "brighton",
+ "platform": "pasiero",
  "tagline": "Pasiero Futbol, match intelligence for the Premier League: a match device measures every match every 5 minutes (the press, the shape, set pieces, every player's running, pass quality and ball speed), explains what drifts off the game plan and why, and brings it to the analyst, the bench and the staff live, in the reports after, and through an assistant.",
  "fonts": {
   "display": "Fredoka",
@@ -114,7 +114,7 @@
    "Are we following the game plan?",
    "Tell the story of the match for a fan, in Spanish",
    "Who is running less than usual?",
-   "Is the match device working?"
+   "¿Cómo vamos, Pasiero?"
   ],
   "suggestionsByView": {
    "normie": [
@@ -137,5 +137,11 @@
   "bundleId": "ai.pasiero.futbol",
   "company": "Pasiero Futbol (demo)",
   "localNetworkUsage": "Connects to the club's match analysis server and cameras on the local network."
+ },
+ "tour": {
+  "welcome": {
+   "en": "¡Hola! I'm Pasiero, your match buddy. I watch every match with the staff: the plan, the press, the set pieces and everyone's running. Let me show you around.",
+   "es": "¡Hola! Soy Pasiero, tu compañero de partido. Veo cada partido con el cuerpo técnico: el plan, la presión, las jugadas a balón parado y lo que corre cada uno. Te enseño todo."
+  }
  }
 }

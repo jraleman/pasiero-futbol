@@ -323,7 +323,7 @@ Every surface takes its look from one theme in [`themes/`](themes), named by its
 
 | Theme | Look and feel |
 |---|---|
-| `pasiero-futbol` (in use) | Pasiero Futbol, from [its banner](pasiero-futbol-banner.png): warm ink, the hat band's orange and magenta, the smiling face in the hat; Fredoka, Nunito, IBM Plex Mono; dark first |
+| `pasiero-futbol` (in use) | Pasiero Futbol, from [its banner](pasiero-futbol-banner.png): warm ink, the hat band's orange and magenta, the smiling face in the hat; Fredoka, Nunito, IBM Plex Mono; dark first. Playful: the banner's diagonal stripes along the top and on the score, its tactics doodles (the plan's and season's headers, the sign-in, the reports' corner, Grafana's header), a chalk underline under every heading, the mascot greeting you at sign-in (*¡Hola! I'm Pasiero*) and saying so in a speech bubble when there's nothing to show, and the dashboard's welcome tour in his voice (English and Spanish) |
 | `pl-match-intelligence` | *Match Intelligence* in the Premier League's purple, cyan and pink, with the lion; Barlow Condensed, Barlow, IBM Plex Mono; dark first |
 
 ```bash
@@ -337,8 +337,8 @@ python3 iot/scripts/theme.py check                 # the files in place are the 
 | From `themes/<id>/` | To | For |
 |---|---|---|
 | `brand.json`, `logo-*.png`, `icon.png`, `fonts/`, `grafana/` | `theme/` | p4n4-dashboard (rebuild its image), Grafana's favicon, menu and login logo (restart Grafana) |
-| `site/theme.css`, `site/marks/` | `iot/ingest/analysis/` | the analysis room, the plan editor, the season page and the reports: surfaces, ink, brand colours, fonts, the mark |
-| `theme.json` | `iot/ingest/analysis/brand.js`, the Grafana dashboard, n8n's workflows | the pages' names and wordmark, Grafana's header (tint, bar), the emails' colours and name (restart the ai layer with `N8N_REIMPORT_WORKFLOWS=true` once) |
+| `site/theme.css`, `site/marks/`, `site/art/` | `iot/ingest/analysis/` | the analysis room, the plan editor, the season page and the reports: surfaces, ink, brand colours, fonts, the mark, and any decoration the theme adds (its CSS loads before the pages', so its rules are one step more specific) |
+| `theme.json` | `iot/ingest/analysis/brand.js`, the Grafana dashboard, n8n's workflows | the pages' names, wordmark and sign-in greeting (optional), Grafana's header (tint, bar, `art` from `site/art/`), the emails' colours and name (restart the ai layer with `N8N_REIMPORT_WORKFLOWS=true` once) |
 
 The data colours (us blue, them aqua, the plan's statuses, the pitch) are the same in every theme (`common.css`, `build_dashboard.py`). A theme's images come from its `assets.py` (rsvg-convert and ImageMagick, at design time). The analysis room's fonts (`iot/ingest/analysis/fonts/`) hold every theme's.
 

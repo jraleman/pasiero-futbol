@@ -29,6 +29,7 @@ function signIn(error = "") {
     document.body.insertAdjacentHTML("beforeend", `
       <dialog id="signin"><form method="dialog" id="signin-form">
         <picture><source srcset="marks/mark.svg" media="(prefers-color-scheme: light)"><img class="mark" src="marks/mark-white.svg" alt="${esc(BRAND.mark)}" width="52" height="56"></picture>
+        ${BRAND.greeting ? `<p class="greeting">${BRAND.greeting}</p>` : ""}
         <h2>${BRAND.name}</h2>
         <p>Sign in with your name: it goes on every call you make and every plan you save.</p>
         <label><span>Your name</span><input id="si-name" autocomplete="username" required maxlength="64"></label>

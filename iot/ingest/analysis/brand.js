@@ -4,5 +4,6 @@ const BRAND = {
  "title": "Pasiero Futbol · Match intelligence",
  "mark": "Pasiero Futbol",
  "wordmark": "Pasiero<b>Futbol</b>",
- "letterhead": "Pasiero Futbol · Match intelligence"
+ "letterhead": "Pasiero Futbol · Match intelligence",
+ "greeting": "¡Hola! I'm Pasiero. Sign in and let's watch the match together."
 };

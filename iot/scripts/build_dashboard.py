@@ -33,6 +33,7 @@ colours (on plan green, drifting amber, off plan red) with their icons.
 from __future__ import annotations
 
 import argparse
+import base64
 import html
 import json
 import re
@@ -100,7 +101,9 @@ HEADER_CSS = """<style>
 .ma-chip{display:inline-flex;gap:7px;padding:5px 12px;border:1px solid var(--ma-line);border-radius:999px;font-size:12px;white-space:nowrap}
 .ma-chip span{opacity:.75}.ma-chip b{font-weight:500;font-family:ui-monospace,monospace;font-size:11.5px}
 .ma-sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}
-@media (max-width:1000px){.ma-sub,.ma-legend{display:none}}
+/* The theme's art (theme.json grafana.art: a file of its site/art/), in the header's empty middle */
+.ma-art{position:absolute;left:50%;top:6px;bottom:0;width:210px;background:no-repeat center/contain;pointer-events:none}
+@media (max-width:1000px){.ma-sub,.ma-legend,.ma-art{display:none}}
 </style>"""
 
 
@@ -125,8 +128,12 @@ class Builder:
         tint = ok(self.spec.get("grafana", {}).get("tint")) or ACCENT[0]
         bar = [c for c in self.spec.get("bar", []) if isinstance(c, str) and re.fullmatch(r"#[0-9A-Fa-f]{3,8}( \d+%)?", c)] or BAR
         mark = self.spec.get("mark") if isinstance(self.spec.get("mark"), str) else name
+        art = ""
+        if isinstance(self.spec.get("grafana", {}).get("art"), str) and self.spec.get("_dir"):
+            svg = Path(self.spec["_dir"]) / "site" / "art" / self.spec["grafana"]["art"]
+            art = f'<span class="ma-art" style="background-image:url(data:image/svg+xml;base64,{base64.b64encode(svg.read_bytes()).decode()})"></span>'
         content = HEADER_CSS.replace("@LIGHT@", light).replace("@DARK@", dark).replace("@TINT@", tint).replace("@BAR@", ",".join(bar)) + f"""
-<div class="ma-head">
+<div class="ma-head">{art}
   <div class="ma-id">
     <img src="./public/img/grafana_icon.svg" alt="{html.escape(mark)}">
     <span class="ma-sep"></span>
@@ -437,7 +444,7 @@ def main() -> None:
     args = parser.parse_args()
     theme = json.loads(Path(args.theme).read_text()) if Path(args.theme).is_file() else {}
     spec = THEMES / str(theme.get("id")) / "theme.json"
-    spec = json.loads(spec.read_text()) if spec.is_file() else {}
+    spec = {**json.loads(spec.read_text()), "_dir": str(spec.parent)} if spec.is_file() else {}
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(json.dumps(Builder(theme, spec).build(), indent=2, ensure_ascii=False) + "\n")
     print(f"wrote {args.out}")
