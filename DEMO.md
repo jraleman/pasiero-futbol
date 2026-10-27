@@ -1,4 +1,4 @@
-# Demo video: Premier League Match Intelligence (under 2 minutes)
+# Demo video: Pasiero Futbol (under 2 minutes)
 
 The hackathon asks for a video **under two minutes**, showing the project working on the platform it was built for, with no third-party trademarks, copyrighted music or other material without permission. This is its script, and how it was recorded.
 
@@ -10,7 +10,7 @@ The club's match device: an **NVIDIA Jetson Orin Nano** (8 GB), the whole stack 
 
 1. **The Jetson.** `P4N4_SRC=../p4n4 deploy/jetson/up.sh <user>@<host>` with nothing else running on the board, then the SSH tunnel and the dashboard as its header says, the dashboard's host set to the Jetson's address. The header then shows the Jetson's address.
 2. **Time it to the live match.** `docker exec p4n4-simulator python /scripts/simulate.py --schedule` on the Jetson prints when the live match reaches each moment (UTC). The deviations open at 35'–40', the half-time report lands about a minute after the whistle, #7's legs go at 65'–70'. A live match lasts 37 minutes, and the next kicks off 44 minutes after the last.
-3. **The screen.** 1920×1080, dark mode. No music, or music you have the rights to. The Premier League's marks and the clubs' crests are on screen (the team's call: the organisers' clearance covers them).
+3. **The screen.** 1920×1080, dark mode, in the Pasiero Futbol theme (`python3 iot/scripts/theme.py use pasiero-futbol`, then restart Grafana and the ai layer and rebuild the dashboard's image). No music, or music you have the rights to. The clubs' crests are on screen (the team's call: the organisers' clearance covers them).
 
 ## The script
 
@@ -24,7 +24,7 @@ The club's match device: an **NVIDIA Jetson Orin Nano** (8 GB), the whole stack 
 | 1:18–1:36 | The analysis room's Match story: *A fan*, *Español*, *Follow #7*; then *Broadcast captions* | "A narrator agent turns the same numbers into the story each audience needs: for a fan, in Spanish, following one player, or as captions for a broadcast." |
 | 1:36–1:46 | Mailpit: the half-time report, the story of the half, the plan's targets and the deviations with the analyst's note | "At half time, the report is on the coaches' phones before they reach the dressing room." |
 | 1:46–1:55 | The repository: `deploy/azure` (Terraform) and `ai/vision/shirts` (the Azure Machine Learning job) | "The same stack is built to deploy on Azure from Terraform, with Azure OpenAI for the agents, and our shirt-number model trains on Azure Machine Learning." |
-| 1:55–2:00 | The sign-in page: the logo, *Match Intelligence*; the repository's URL | "Match Intelligence: every match, for every fan." |
+| 1:55–2:00 | The sign-in page: the logo, *Pasiero Futbol*; the repository's URL (github.com/jraleman/pasiero-futbol) | "Pasiero Futbol: every match, for every fan." |
 
 **Keep it under 2:00:** judges needn't watch beyond two minutes. Cut the repository shot first if it runs long. The Assistant's answer takes about 80 seconds on the Jetson: the cut says so (*1 minute later*), it isn't sped up.
 

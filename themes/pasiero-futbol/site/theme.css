@@ -1,0 +1,61 @@
+/* The theme of the analysis room, the plan editor, the season page and the reports: Pasiero Futbol's look and feel
+   (pasiero-futbol-banner.png). iot/scripts/theme.py copies it to iot/ingest/analysis/theme.css; the data colours
+   (us, them, statuses, the pitch) stay in common.css. */
+@font-face { font-family: Fredoka; font-weight: 500; src: url(fonts/Fredoka-Medium.ttf); }
+@font-face { font-family: Fredoka; font-weight: 600; src: url(fonts/Fredoka-SemiBold.ttf); }
+@font-face { font-family: Fredoka; font-weight: 700 900; src: url(fonts/Fredoka-Bold.ttf); }
+@font-face { font-family: Nunito; font-weight: 400; src: url(fonts/Nunito-Regular.ttf); }
+@font-face { font-family: Nunito; font-weight: 500; src: url(fonts/Nunito-Medium.ttf); }
+@font-face { font-family: Nunito; font-weight: 600; src: url(fonts/Nunito-SemiBold.ttf); }
+@font-face { font-family: Nunito; font-weight: 700 900; src: url(fonts/Nunito-Bold.ttf); }
+@font-face { font-family: "Plex Mono"; font-weight: 400; src: url(fonts/IBMPlexMono-Regular.ttf); }
+@font-face { font-family: "Plex Mono"; font-weight: 500; src: url(fonts/IBMPlexMono-Medium.ttf); }
+
+:root {
+  color-scheme: dark;
+  /* Dark first (the booth), in the banner's warm ink: the screens and the pitch are what you look at */
+  --bg: #160f12;
+  --panel: #201719;
+  --raise: #2b1f24;
+  --line: #3b2b31;
+  --line-2: #4e3a42;
+  --ink: #fbf3f1;
+  --ink-2: #dccbc9;
+  --muted: #a8918f;
+  /* The brand, never a data colour: the hat band's magenta (the score), its orange for the few marks that must
+     stand out on the pitch (the plan's shape, the ringed players, the line), and the banner's stripes, orange
+     into magenta, along the top of every page */
+  --brand: #8e3a62;
+  --highlight: #ff7a4f;
+  --bar: linear-gradient(90deg, #d9553a, #f2774f 30%, #c07198 65%, #b0517b);
+  --accent: #f2774f;
+  --on-accent: #160f12;
+  --mono: "Plex Mono", ui-monospace, monospace;
+  --display: Fredoka, Nunito, system-ui, sans-serif;
+  --body: Nunito, system-ui, sans-serif;
+  /* The wordmark in the room's header: Pasiero, FUTBOL under it */
+  --wordmark-case: none;
+}
+@media (prefers-color-scheme: light) {
+  :root:where(:not([data-theme="dark"])) {
+    color-scheme: light;
+    --bg: #f8f1ef;
+    --panel: #ffffff;
+    --raise: #f2e7e6;
+    --line: #e9dbda;
+    --line-2: #d7c3c4;
+    --ink: #1e1214;
+    --ink-2: #4a3438;
+    --muted: #7a6266;
+    --brand: #9c3f6c;
+    --highlight: #c2452a;
+    --accent: #b5432a;
+    --on-accent: #ffffff;
+  }
+}
+/* Paper (the reports): always light */
+html.paper {
+  color-scheme: light;
+  --bg: #efe6e4; --panel: #ffffff; --raise: #f8f1ef; --line: #e9dbda; --line-2: #d7c3c4;
+  --ink: #1e1214; --ink-2: #4a3438; --muted: #7a6266; --brand: #9c3f6c; --accent: #b5432a; --on-accent: #fff;
+}

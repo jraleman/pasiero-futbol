@@ -1,6 +1,6 @@
 #!/bin/sh
-# Deploys Match Intelligence on the Azure VM, as the p4n4 user: the first time (cloud-init), and
-# every time after (bh-deploy, which pulls the branch first). Idempotent.
+# Deploys Pasiero Futbol on the Azure VM, as the p4n4 user: the first time (cloud-init), and
+# every time after (pasiero-deploy, which pulls the branch first). Idempotent.
 #
 #   1. The secrets from Key Vault, with the VM's managed identity (no key on the disk)
 #   2. Each layer's .env: its .env.example, the secrets, the public addresses, Azure OpenAI
@@ -12,10 +12,10 @@
 #      in front of the dashboard and the cameras), the dashboard, p4n4-api, and the judge's and
 #      admin's logins
 #
-# /etc/match-intelligence.env (cloud-init, from Terraform) says where: FQDN, KEY_VAULT,
+# /etc/pasiero-futbol.env (cloud-init, from Terraform) says where: FQDN, KEY_VAULT,
 # AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_DEPLOYMENT, DASHBOARD_REF, P4N4_API_VERSION.
 set -eu
-. /etc/match-intelligence.env
+. /etc/pasiero-futbol.env
 export PATH="$HOME/.local/bin:$PATH"
 REPO=$(cd "$(dirname "$0")/../../.." && pwd)
 HERE="$REPO/deploy/azure/vm"

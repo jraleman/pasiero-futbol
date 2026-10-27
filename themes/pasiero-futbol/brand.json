@@ -1,0 +1,141 @@
+{
+ "id": "pasiero-futbol",
+ "appName": "Pasiero Futbol",
+ "wordmark": {
+  "text": "pasiero",
+  "suffix": " futbol"
+ },
+ "logo": {
+  "light": "logo-light.png",
+  "dark": "logo-dark.png"
+ },
+ "platform": "brighton",
+ "tagline": "Pasiero Futbol, match intelligence for the Premier League: a match device measures every match every 5 minutes (the press, the shape, set pieces, every player's running, pass quality and ball speed), explains what drifts off the game plan and why, and brings it to the analyst, the bench and the staff live, in the reports after, and through an assistant.",
+ "fonts": {
+  "display": "Fredoka",
+  "mono": "IBM Plex Mono"
+ },
+ "colors": {
+  "light": {
+   "bg": "#F8F1EF",
+   "bg2": "#FFFFFF",
+   "bg3": "#F2E7E6",
+   "accent": "#B5432A",
+   "accent2": "#9C3F6C",
+   "onAccent": "#FFFFFF",
+   "heading": "#1E1214",
+   "text": "#3D2A2E",
+   "border": "#E9DBDA",
+   "border2": "#D7C3C4",
+   "err": "#9F1239",
+   "warn": "#8A5A00",
+   "amber": "#92400E",
+   "ok": "#166534"
+  },
+  "dark": {
+   "bg": "#160F12",
+   "bg2": "#201719",
+   "bg3": "#2B1F24",
+   "accent": "#F2774F",
+   "accent2": "#E67FAE",
+   "onAccent": "#160F12",
+   "heading": "#FBF3F1",
+   "text": "#E9DCDA",
+   "border": "#3B2B31",
+   "border2": "#4E3A42",
+   "err": "#FF8A8A"
+  }
+ },
+ "tabs": [
+  "feed",
+  "video",
+  "grafana",
+  "agent",
+  "services",
+  "edge"
+ ],
+ "links": [
+  {
+   "label": "Analysis room",
+   "url": "http://localhost:8090/analysis/"
+  },
+  {
+   "label": "Match story",
+   "url": "http://localhost:8090/analysis/#story-card"
+  },
+  {
+   "label": "Game plan",
+   "url": "http://localhost:8090/analysis/plan.html"
+  },
+  {
+   "label": "Set pieces",
+   "url": "http://localhost:8090/analysis/#set-pieces"
+  },
+  {
+   "label": "Half-time report",
+   "url": "http://localhost:8090/analysis/report.html?part=half"
+  },
+  {
+   "label": "Match report",
+   "url": "http://localhost:8090/analysis/report.html?part=full"
+  },
+  {
+   "label": "The demo's emails",
+   "url": "http://localhost:8025"
+  }
+ ],
+ "defaults": {
+  "host": "localhost",
+  "themeMode": "dark",
+  "locale": "en",
+  "timeFormat": "h24",
+  "temperatureUnit": "celsius",
+  "grafanaPath": "/d/match-analysis/match-analysis",
+  "tabOrder": "feed,video,grafana,agent,services,edge",
+  "powerTabs": "feed,video,grafana,agent,services,edge",
+  "normieTabs": "feed,grafana,agent",
+  "agentBackend": "ollama",
+  "ollamaModel": "gemma4:e2b",
+  "videoDemo": false
+ },
+ "video": {
+  "demoCameras": [],
+  "overlay": {
+   "objects": {
+    "ball": "#FFFFFF"
+   },
+   "showObjects": true,
+   "showTags": true,
+   "showKey": true
+  }
+ },
+ "assistant": {
+  "suggestions": [
+   "Are we following the game plan?",
+   "Tell the story of the match for a fan, in Spanish",
+   "Who is running less than usual?",
+   "Is the match device working?"
+  ],
+  "suggestionsByView": {
+   "normie": [
+    "How are we doing?",
+    "What should we tell the players?",
+    "Who is running less than usual?",
+    "How is our press working?"
+   ],
+   "power": [
+    "Are we following the game plan?",
+    "Which deviations are still to call?",
+    "How did our set pieces go?",
+    "Tell the story of the match for a fan, in Spanish"
+   ]
+  }
+ },
+ "native": {
+  "displayName": "Pasiero Futbol",
+  "applicationId": "ai.pasiero.futbol",
+  "bundleId": "ai.pasiero.futbol",
+  "company": "Pasiero Futbol (demo)",
+  "localNetworkUsage": "Connects to the club's match analysis server and cameras on the local network."
+ }
+}

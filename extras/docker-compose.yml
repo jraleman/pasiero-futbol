@@ -1,7 +1,7 @@
 services:
 
   # ====================================================================================
-  # brighton-match-analysis: extras layer, with the match device (at the Amex, or on the road)
+  # pasiero-futbol: extras layer, with the match device (at the Amex, or on the road)
   #   clips/<camera>.mp4 (real recordings) ──► clips :1985 ──MP4──► p4n4-dashboard Video tab (vision overlay)
   #                                        └──► video :1984 ──MJPEG──► analysis room (../iot :8090/analysis/)
   #   (video also takes a real camera's URL; without URL or loop it draws the simulated match)

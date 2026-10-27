@@ -1,7 +1,7 @@
 services:
 
   # ====================================================================================
-  # brighton-match-analysis: ai layer (joins p4n4-net, which ../iot creates)
+  # pasiero-futbol: ai layer (joins p4n4-net, which ../iot creates)
   #   p4n4-dashboard Agent tab ──► agent :11434 ──┬──► Azure OpenAI: the team (orchestrator, analyst, coach, narrator)
   #   analysis room's recaps ─────►               ├──► ollama (OLLAMA_MODEL, default gemma4:e2b): the offline fallback
   #                                               ├──► ingest agent API (matches, plans, shapes, plays; read only)

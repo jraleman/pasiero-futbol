@@ -3,22 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" href="marks/lion.svg">
-<title>Match Intelligence · Premier League</title>
+<link rel="icon" href="marks/mark.svg">
+<title data-brand="title">Analysis room</title>
+<link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="common.css">
+<script src="brand.js"></script>
 <style>
 /* ── the score bug ─────────────────────────────────────────────────────────── */
 .bug { display: grid; grid-template-columns: auto max-content minmax(0, 1fr) max-content; align-items: center; gap: 22px;
        padding: 10px 20px; background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
 .brand { display: flex; align-items: center; gap: 12px; padding-right: 18px; border-right: 1px solid var(--line); height: 48px; }
 .brand img { width: 42px; height: 46px; object-fit: contain; display: block; }
-.brand span { font: 800 17px/1 var(--display); text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); }
-.brand span b { display: block; color: var(--highlight); font-size: 12px; letter-spacing: .12em; }
+.brand span { font: 800 17px/1 var(--display); text-transform: var(--wordmark-case); letter-spacing: .04em; color: var(--ink-2); }
+.brand span b { display: block; color: var(--highlight); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
 .score { display: flex; align-items: stretch; border-radius: 6px; overflow: hidden; }
 .score .club { display: flex; align-items: center; gap: 10px; padding: 4px 14px; background: var(--raise); min-width: 92px; }
 .score .club img, .score .club .crest-none { width: 38px; height: 38px; object-fit: contain; }
 .score .club .code { font: 800 26px/1 var(--display); letter-spacing: .03em; }
-.score .club small { display: block; font: 500 11px/1.2 Barlow; color: var(--muted); margin-top: 2px; white-space: nowrap; }
+.score .club small { display: block; font: 500 11px/1.2 var(--body); color: var(--muted); margin-top: 2px; white-space: nowrap; }
 .score .club .kit { display: block; height: 3px; border-radius: 2px; margin-top: 4px; }
 .score .goals { display: flex; align-items: center; gap: 10px; padding: 0 16px; font: 800 32px/1 var(--display); background: var(--brand); color: #fff; }
 .score .goals span { opacity: .55; font-weight: 600; }
@@ -36,7 +38,7 @@
 .who .analyst b { color: var(--ink); font-weight: 600; }
 .short { display: none; }
 
-/* Narrower than the whole bar (about 1900 px): the lion without its words, the clubs' codes
+/* Narrower than the whole bar (about 1900 px): the mark without its words, the clubs' codes
    without their names (on hover), shorter labels. Narrower still, the controls on a row of their own. */
 @media (max-width: 1800px) {
   .bug { gap: 16px; }
@@ -89,7 +91,7 @@ table.targets td.spark { width: 170px; }
 .shape { display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 14px; }
 .shape .side { display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
 .shape .read { font: 800 40px/1 var(--display); }
-.shape .read small { display: block; font: 500 12px Barlow; color: var(--muted); margin-top: 4px; }
+.shape .read small { display: block; font: 500 12px var(--body); color: var(--muted); margin-top: 4px; }
 .shape dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; }
 .shape dt { color: var(--muted); }
 .shape dd { margin: 0; font-family: var(--mono); text-align: right; }
@@ -243,7 +245,7 @@ table.run .num { font-family: var(--mono); }
 </head>
 <body>
 <header class="bug">
-  <div class="brand"><picture><source srcset="marks/lion.svg" media="(prefers-color-scheme: light)"><img src="marks/lion-white.svg" alt="Premier League"></picture><span><b>Premier League</b>Match<br>intelligence</span></div>
+  <div class="brand"><picture><source srcset="marks/mark.svg" media="(prefers-color-scheme: light)"><img class="mark" src="marks/mark-white.svg" alt=""></picture><span data-brand="wordmark"></span></div>
   <div class="score" id="score" aria-live="polite"></div>
   <div class="matchinfo"><div class="state" id="state"></div><div class="meta" id="meta"></div></div>
   <div class="who">
@@ -456,7 +458,7 @@ function renderBug() {
     (m.synthetic ? `<span class="tag demo">Demo data</span>` : m.scouting ? `<span class="tag real">Scouting footage</span>`
       : `<span class="tag real">Real tracking data</span>`);
   $("meta").textContent = $("meta").title = [m.competition, m.matchday ? `Matchday ${m.matchday}` : null, m.venue, when(m.kickoff)].filter(Boolean).join(" · ");
-  document.title = `${scoreText(m)} · Match Intelligence`;
+  document.title = `${scoreText(m)} · ${BRAND.name}`;
 }
 
 // The game plan, target by target

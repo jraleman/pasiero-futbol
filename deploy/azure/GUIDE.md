@@ -1,6 +1,6 @@
 # Deploying to Azure, step by step
 
-From an empty Azure subscription to Match Intelligence on its own HTTPS address, then the shirt-number model trained on Azure Machine Learning, then everything removed again. It takes about an hour, most of it waiting.
+From an empty Azure subscription to Pasiero Futbol on its own HTTPS address, then the shirt-number model trained on Azure Machine Learning, then everything removed again. It takes about an hour, most of it waiting.
 
 [README.md](README.md) explains what each piece does; [REPORT.md](REPORT.md) explains why steps 1 to 3 are here: a new subscription hits each of them.
 
@@ -102,7 +102,7 @@ Leave `openai_keys` off. The VM signs in to Azure OpenAI with its managed identi
 
 ```bash
 terraform init
-terraform plan -out tfplan                # read it: 45 to add, all in rg-match-intelligence
+terraform plan -out tfplan                # read it: 45 to add, all in rg-pasiero-futbol
 terraform apply tfplan                    # about 10 minutes
 rm tfplan
 ```
@@ -128,7 +128,7 @@ If `apply` stops with a quota or `SkuNotAvailable` error, go back to step 3 for 
 **Without it** (the repository not public yet), copy your working tree to the VM once it's up, about 3 minutes after `apply`:
 
 ```bash
-deploy/azure/vm/push.sh                   # rsync to the VM, then bh-deploy there
+deploy/azure/vm/push.sh                   # rsync to the VM, then pasiero-deploy there
 ```
 
 Follow the deploy log. The first deploy takes about 20 minutes: images, the dashboard's Flutter build, and Ollama's 4.6 GB fallback model.
@@ -146,7 +146,7 @@ terraform -chdir=deploy/azure output -json judge_login
 
 | Open | Expect |
 |---|---|
-| `https://<fqdn>/` | A valid certificate (Let's Encrypt). The browser's login (`judge`), then the dashboard in the Premier League theme; sign in as `judge` again |
+| `https://<fqdn>/` | A valid certificate (Let's Encrypt). The browser's login (`judge`), then the dashboard in the project's theme (Pasiero Futbol); sign in as `judge` again |
 | The dashboard's **Cameras** | The five loops playing, with the players' boxes; `curl -I https://<fqdn>/cameras/tv.mp4` without the login: `401` |
 | `https://<fqdn>:8443/analysis/` | The analysis room after any name and `analysis_token`: a live match at the Amex, *Demo data* in the header |
 | `https://<fqdn>/grafana/` | The *Match analysis* dashboard, behind the browser's login only (Grafana's viewer is anonymous) |
@@ -159,7 +159,7 @@ ssh $ip 'docker logs p4n4-ollama 2>&1 | grep "team:"'      # "team: orchestrator
 ssh $ip 'docker stats --no-stream'                          # every container within the nuc profile's limits
 ```
 
-If the team log says *Azure OpenAI isn't set*, the VM's `.env` didn't get the endpoint: run `bh-deploy` again (step 9). If answers come from Ollama, the identity's role may still be propagating (up to 10 minutes after `apply`). Look for the reason in `docker logs p4n4-ollama`.
+If the team log says *Azure OpenAI isn't set*, the VM's `.env` didn't get the endpoint: run `pasiero-deploy` again (step 9). If answers come from Ollama, the identity's role may still be propagating (up to 10 minutes after `apply`). Look for the reason in `docker logs p4n4-ollama`.
 
 ## 8. Train the shirt-number model on Azure ML
 
@@ -192,10 +192,10 @@ Once the repository is public, with `github_repo` set and `terraform output gith
 ## 10. Save money, then take it all down
 
 ```bash
-az vm deallocate -g rg-match-intelligence -n vm-match-intelligence   # stopped: only the disk and IP, about 1 a day
-az vm start      -g rg-match-intelligence -n vm-match-intelligence   # back in about 2 minutes, same address
+az vm deallocate -g rg-pasiero-futbol -n vm-pasiero-futbol   # stopped: only the disk and IP, about 1 a day
+az vm start      -g rg-pasiero-futbol -n vm-pasiero-futbol   # back in about 2 minutes, same address
 
 cd deploy/azure && terraform destroy      # everything above, about 10 minutes
 ```
 
-`destroy` purges Key Vault and Azure OpenAI, so their names can be used again right away. The resource providers stay registered (they cost nothing). Afterwards, check that nothing is left: `az group show -n rg-match-intelligence` should say it doesn't exist.
+`destroy` purges Key Vault and Azure OpenAI, so their names can be used again right away. The resource providers stay registered (they cost nothing). Afterwards, check that nothing is left: `az group show -n rg-pasiero-futbol` should say it doesn't exist.

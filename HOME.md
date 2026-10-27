@@ -1,4 +1,4 @@
-## Match intelligence
+## Pasiero Futbol · match intelligence
 
 The club's match device measures every match every 5 minutes: both teams' data (the press: PPDA, regains, the counter-press; pass quality and ball speed), their shape in and out of possession, the **set pieces** and **every player's running**. The staff's **game plan** sets the targets; when one is off the plan for 15 minutes, a **deviation** comes in for the analyst to flag for the bench or set aside as expected. A **team of AI agents** (Microsoft Agent Framework, on Azure OpenAI or the device's own model) answers from those numbers and tells the match's story for each audience, in any language.
 

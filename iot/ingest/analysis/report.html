@@ -1,17 +1,16 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="light" class="paper">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" href="marks/lion.svg">
+<link rel="icon" href="marks/mark.svg">
 <title>Match report</title>
+<link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="common.css">
+<script src="brand.js"></script>
 <style>
-/* Paper: always light */
+/* Paper: always light (the theme's html.paper, and the data colours on paper) */
 :root {
-  color-scheme: light;
-  --bg: #ece6ee; --panel: #ffffff; --raise: #f7f4f8; --line: #e3d9e6; --line-2: #cfbfd5;
-  --ink: #1f0024; --ink-2: #4a3150; --muted: #725d79; --accent: #37003c; --on-accent: #fff;
   --us: #2a78d6; --them: #1baf7a; --pitch: #2e6b3d; --chalk: rgba(255,255,255,.6); --chalk-2: rgba(255,255,255,.2);
 }
 @page { size: A4; margin: 12mm; }
@@ -24,7 +23,7 @@ body { background: var(--bg); font-size: 12.5px; }
 .letterhead::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--bar); }
 .letterhead img { width: 54px; height: 54px; object-fit: contain; }
 .letterhead .t { font: 800 24px/1 var(--display); text-transform: uppercase; letter-spacing: .03em; }
-.letterhead .t small { display: block; font: 600 12px Barlow; letter-spacing: .1em; color: var(--accent); margin-bottom: 3px; }
+.letterhead .t small { display: block; font: 600 12px var(--body); letter-spacing: .1em; color: var(--accent); margin-bottom: 3px; }
 .letterhead .r { margin-left: auto; text-align: right; color: var(--muted); font-size: 11.5px; }
 .scoreline { display: flex; align-items: center; gap: 16px; margin-bottom: 4px; }
 .scoreline .club { display: flex; align-items: center; gap: 8px; font: 800 30px var(--display); }
@@ -146,7 +145,7 @@ async function build() {
   const plays = d.plays.filter(p => p.key && (!half || p.period === 1)).slice(0, 8);
   const instructions = a.plan?.instructions?.length ? `<h2>Instructions</h2><ol class="instr">${a.plan.instructions.map(i => `<li>${esc(i)}</li>`).join("")}</ol>` : "";
   const notes = a.plan?.opponent_notes ? `<h2>The opponent</h2><p style="margin:0">${esc(a.plan.opponent_notes)}</p>` : "";
-  const letterhead = `<div class="letterhead"><img src="marks/lion.svg" alt="Premier League"><div class="t"><small>Match Intelligence · Premier League</small>${esc(title)}</div>
+  const letterhead = `<div class="letterhead"><img src="marks/mark.svg" alt="${esc(BRAND.mark)}"><div class="t"><small>${BRAND.letterhead}</small>${esc(title)}</div>
     <div class="r">${m.synthetic ? '<span class="tag demo">Demo data</span><br>' : '<span class="tag real">Real tracking data</span><br>'}Printed ${esc(new Date().toLocaleString())}</div></div>`;
   $("report").innerHTML = `
     <div class="sheet">

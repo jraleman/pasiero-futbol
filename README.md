@@ -1,4 +1,8 @@
-# Premier League Match Intelligence
+# Pasiero Futbol
+
+![Pasiero Futbol](pasiero-futbol-banner.png)
+
+**Match intelligence for the Premier League.**
 
 > Explainable match intelligence from synthetic football events, built for the hackathon in [CHALLENGE.md](CHALLENGE.md) (criterion by criterion, with where to see each: [SUBMISSION.md](SUBMISSION.md)). A club's **match device** measures every match every 5 minutes: both teams' data (possession, passes, **pass quality and ball speed**, PPDA, field tilt, final-third entries by channel, shots and xG, regains), their **shape** in and out of possession, the **set pieces** (every delivery into the box: the routine, who won the first contact, the xG that came of it) and **every player's running**. It finds the **technical plays** and checks everything against the staff's **game plan**: when a target is off the plan for 15 minutes, a **deviation** says what was measured, against what, and the plan's own instruction for it. A **team of AI agents** on **Microsoft Agent Framework** and **Azure OpenAI** answers the staff's questions from those numbers and tells each match's story, for a fan, a coach, an analyst or a broadcast's captions, in any language, following one player if asked. The **analysis room**, **Grafana**, **n8n**'s reports to the staff's phones and the Video tab show it alongside the match. It runs offline too: without Azure, a local model on Ollama answers. The demo's club is Brighton & Hove Albion; every match is synthetic.
 
@@ -9,7 +13,7 @@
 | Data | Synthetic only: a match engine plays the season 5 times a second, and every document it posts says `"synthetic": true` (*Demo data* on every screen) |
 | Layers | `iot`, `ai`, `extras` |
 | Services | iot: ingest (+ analysis room, plan editor, season page, reports) · Mosquitto · InfluxDB · Grafana (+ demo club device) · ai: agent (+ the team) · Ollama · n8n · Mailpit · vision (profile, on demand) · extras: go2rtc |
-| Theme | `theme/` (`pl-match-intelligence`: the Premier League's look and feel, its purple `#37003C`, cyan `#04F5FF` for the accent, pink `#FF2882` for the few marks that must stand out on the pitch, its gradient along every header, and the lion as the logo, all from `iot/scripts/theme_assets.py`; dark first, Barlow Condensed + IBM Plex Mono) |
+| Theme | `theme/`, the one in use of [`themes/`](#themes) (`iot/scripts/theme.py use <id>`): `pasiero-futbol`, Pasiero Futbol's look and feel from [its banner](pasiero-futbol-banner.png): warm ink, orange `#D9553A` for the accent, magenta `#B0517B` for the score, an orange-into-magenta bar along every header, and the smiling face in the hat as the logo; dark first, Fredoka + Nunito + IBM Plex Mono. The Premier League theme it replaced is kept as `pl-match-intelligence` |
 | League | `iot/ingest/analysis/league.json`: the 2026-27 Premier League's 20 clubs (codes, grounds, kit colours, crests in `analysis/crests/`); `squads.json`: made-up names for every shirt number. The simulator, the analysis room, the reports, the synthetic cameras and the ingest service read them |
 | Built on | p4n4's `mqtt-influx-grafana-ollama-go2rtc` template 0.4.0 |
 
@@ -51,7 +55,7 @@ A presenter's script for the demo video: [DEMO.md](DEMO.md).
 ## Quick start
 
 ```bash
-cd bh-albion   # this repository
+cd pasiero-futbol   # this repository (github.com/jraleman/pasiero-futbol)
 for layer in iot ai extras; do cp $layer/.env.example $layer/.env; done   # change passwords and tokens
 # optional: the team of agents on Azure OpenAI, in ai/.env (without it, the local model answers)
 #   AZURE_OPENAI_ENDPOINT=https://<resource>.openai.azure.com/  AZURE_OPENAI_DEPLOYMENT=<a chat model, e.g. gpt-4.1-mini>
@@ -159,7 +163,7 @@ The demo's engine moves its players as people move: a small gap closed at a jog,
 
 `:8090/analysis/` (sign in with your name and the staff token), for the booth's screen or a laptop on the bench:
 
-- **The header:** the league's lion, the score with both crests and kit colours, the minute, *Demo data* (or *Scouting footage* for a match from recorded footage), a picker for every match ("10-17 v FUL W 2-1 · 3 to call"), and links to the plan, the half-time report, the match report and the season.
+- **The header:** the theme's mark and name, the score with both crests and kit colours, the minute, *Demo data* (or *Scouting footage* for a match from recorded footage), a picker for every match ("10-17 v FUL W 2-1 · 3 to call"), and links to the plan, the half-time report, the match report and the season.
 - **Game plan:** the plan's title (*Club default* when inherited), the formations planned against read, the share of targets on plan, and the scorecard: each target, ★ if key, what it is, the plan, the match so far and the last 15' with their status (✓ ~ ✕ and a word, never colour alone), and its value every 5 minutes against the plan's line.
 - **Shape:** average positions by shirt number, attacking right, for either team, in or out of possession, over the match, a half or the last 15', with the plan's formation drawn over them; out of possession the defensive line, in possession the pass network.
 - **Match timeline:** xG every 5 minutes, ours up and theirs down; the key plays on their minute; each deviation as a bar.
@@ -224,13 +228,13 @@ InfluxDB gets `team_window` (with set pieces and running), `player_run` (each pl
 
 ## Grafana
 
-`iot/scripts/build_dashboard.py` writes **Match analysis** (uid `brighton-match-analysis`). Edit the script, not the JSON.
+`iot/scripts/build_dashboard.py` writes **Match analysis** (uid `match-analysis`). Edit the script, not the JSON.
 
 - **The match:** tiles (on the plan, possession, xG for and against, PPDA, line height); xG per 5 minutes; the game plan every 5 minutes (✓ ~ ✕); line height, PPDA and width by minute; the deviations and the plays; set pieces and set-piece xG, both sides; high-speed running every 5 minutes; our players' running.
 - **The season:** xG per match, the plan's share on plan, set-piece xG per match, high-speed running per match, PPDA per match, and which targets slip most.
 - **The club's match device:** status, last heartbeat, temperatures, tracking and latency.
 
-The header carries the league's lion and gradient, and Grafana's favicon, menu and login logo are the lion too (`theme/grafana/`, from `iot/scripts/theme_assets.py`; the menu logo is a content-hashed file of `grafana-oss:12.4.3`, and the smoke test fails when an upgrade changes it). Ours is always blue and theirs aqua (validated categorical steps, always beside the club codes); the plan's statuses take the status colours with their icons; the league's purple, cyan and pink are identity, never data.
+The header carries the theme's mark, name, tint and bar (`themes/<id>/theme.json`), and Grafana's favicon, menu and login logo are the mark too (`theme/grafana/`, from the theme's `assets.py`; the menu logo is a content-hashed file of `grafana-oss:12.4.3`, and the smoke test fails when an upgrade changes it). Ours is always blue and theirs aqua (validated categorical steps, always beside the club codes); the plan's statuses take the status colours with their icons; the theme's colours are identity, never data.
 
 ## Video
 
@@ -264,7 +268,7 @@ The Assistant tab, the analysis room's Match story and the n8n reports ask one a
 
 | Agent | Tools | Does |
 |---|---|---|
-| **Match Intelligence** (the orchestrator) | the three specialists, as tools (`Agent.as_tool`) | Reads the question and the view asking, calls every specialist it needs (in one turn when they don't depend on each other: "how are we doing, and what should we tell the players?" asks the analyst and the coach at once), and answers in the question's language and the viewer's register |
+| **Pasiero** (the orchestrator, `match_intelligence`) | the three specialists, as tools (`Agent.as_tool`) | Reads the question and the view asking, calls every specialist it needs (in one turn when they don't depend on each other: "how are we doing, and what should we tell the players?" asks the analyst and the coach at once), and answers in the question's language and the viewer's register |
 | **Analyst** | match summary, game plan, formation, plays, one play, set pieces, running, season, device status | The numbers, exactly as the tools give them |
 | **Coach** | the briefing, running, game plan | What the staff could talk about: each target off the plan with what was measured and the plan's own instruction, the running drops, what's going well, the analyst's calls. Options, never decisions |
 | **Narrator** | match summary, plays, one play, running, set pieces | The story, and why each moment mattered: control against chaos, the press, the plan holding or slipping, the moments that turned the match, a player's legs going |
@@ -294,9 +298,9 @@ The Assistant tab, the analysis room's Match story and the n8n reports ask one a
 }
 ```
 
-- **Theme (`theme/`):** `pl-match-intelligence`, *Match Intelligence*, English, dark first (the booth), 24-hour time, Celsius, Barlow Condensed and IBM Plex Mono, in the Premier League's purple with its cyan accent. The logo is the lion and *MATCH INTELLIGENCE* in `logo-dark.png` / `logo-light.png`; the launcher icon is the lion on purple (`iot/scripts/theme_assets.py` draws them all from the league's logo). Links: the analysis room, its Match story, the plan, the set pieces, both reports, the demo's emails. `video.demoCameras` is empty until our own footage is filmed (`defaults.videoDemo` off: the Video tab plays the synthetic cameras); `video.overlay` colours the ball, and each footage's teams once it has some. `dart run tool/brand.dart check ../projects/pl/bh-albion` (from `dashboard/`) checks it. After changing it, rebuild the image (`make image THEME=$P` in `dashboard/`).
+- **Theme (`theme/`):** the one in use of [`themes/`](#themes), now `pasiero-futbol`: *Pasiero Futbol*, English, dark first (the booth), 24-hour time, Celsius, Fredoka and IBM Plex Mono, in the banner's warm ink with its orange accent. The logo is the smiling face in the hat, *Pasiero* and *FUTBOL* in `logo-dark.png` / `logo-light.png`; the launcher icon is the face on cream (`themes/pasiero-futbol/assets.py` draws them all from `src/mark.svg`). Links: the analysis room, its Match story, the plan, the set pieces, both reports, the demo's emails. `video.demoCameras` is empty until our own footage is filmed (`defaults.videoDemo` off: the Video tab plays the synthetic cameras); `video.overlay` colours the ball, and each footage's teams once it has some. `dart run tool/brand.dart check <this repository>/theme` (from p4n4's `dashboard/`) checks it. After changing it, rebuild the image (`make image THEME=$P` in `dashboard/`).
 - **Feed:** the deviations (alerts to call: *Flag for the bench*, *Expected*; a key target's in the theme's accent) and the key plays (events, with their keyframes; the footage's plays with their real frames). New deviations toast on every tab.
-- **Marks.** The clubs' crests and the Premier League's logo are Wikipedia's copies of their logos (`brand-src/`, with `sources.json`; `iot/ingest/analysis/crests/`, `marks/`). They belong to the clubs and the league, and are used here for the hackathon's Premier League category; ask the organisers before using them anywhere else. The code is MIT ([LICENSE](LICENSE)); the marks, fonts and the vision pipeline's AGPL-3.0 parts are not ([NOTICE.md](NOTICE.md)). Kit colours are the clubs' colours, unverified against this season's kits; the grounds are 2026-27's as Wikipedia lists them.
+- **Marks.** The clubs' crests and the Premier League's logo (in the saved `pl-match-intelligence` theme) are Wikipedia's copies of their logos (`brand-src/`, with `sources.json`; `iot/ingest/analysis/crests/`, `themes/pl-match-intelligence/`). They belong to the clubs and the league, and are used here for the hackathon's Premier League category; ask the organisers before using them anywhere else. The code is MIT ([LICENSE](LICENSE)); the marks, fonts and the vision pipeline's AGPL-3.0 parts are not ([NOTICE.md](NOTICE.md)). Kit colours are the clubs' colours, unverified against this season's kits; the grounds are 2026-27's as Wikipedia lists them.
 
 ### Views and accounts
 
@@ -312,6 +316,31 @@ P4N4_PROJECT_DIR=$PWD P4N4_API_DATA_DIR=$PWD/.p4n4-api P4N4_API_HOST=172.17.0.1 
 ```
 
 `P4N4_API_DEV_USERS=true` creates `admin`, `power` and `normie`, all with the password `p4n4`, for trying the three views. Never on a deployment anyone else can reach.
+
+## Themes
+
+Every surface takes its look from one theme in [`themes/`](themes), named by its brand id:
+
+| Theme | Look and feel |
+|---|---|
+| `pasiero-futbol` (in use) | Pasiero Futbol, from [its banner](pasiero-futbol-banner.png): warm ink, the hat band's orange and magenta, the smiling face in the hat; Fredoka, Nunito, IBM Plex Mono; dark first |
+| `pl-match-intelligence` | *Match Intelligence* in the Premier League's purple, cyan and pink, with the lion; Barlow Condensed, Barlow, IBM Plex Mono; dark first |
+
+```bash
+python3 iot/scripts/theme.py                       # the themes, the one in use marked
+python3 iot/scripts/theme.py use pl-match-intelligence
+python3 iot/scripts/theme.py check                 # the files in place are the theme's (CI runs it)
+```
+
+`use` copies the theme into place and rebuilds what's drawn from it:
+
+| From `themes/<id>/` | To | For |
+|---|---|---|
+| `brand.json`, `logo-*.png`, `icon.png`, `fonts/`, `grafana/` | `theme/` | p4n4-dashboard (rebuild its image), Grafana's favicon, menu and login logo (restart Grafana) |
+| `site/theme.css`, `site/marks/` | `iot/ingest/analysis/` | the analysis room, the plan editor, the season page and the reports: surfaces, ink, brand colours, fonts, the mark |
+| `theme.json` | `iot/ingest/analysis/brand.js`, the Grafana dashboard, n8n's workflows | the pages' names and wordmark, Grafana's header (tint, bar), the emails' colours and name (restart the ai layer with `N8N_REIMPORT_WORKFLOWS=true` once) |
+
+The data colours (us blue, them aqua, the plan's statuses, the pitch) are the same in every theme (`common.css`, `build_dashboard.py`). A theme's images come from its `assets.py` (rsvg-convert and ImageMagick, at design time). The analysis room's fonts (`iot/ingest/analysis/fonts/`) hold every theme's.
 
 ## Security and data
 
@@ -348,7 +377,7 @@ python3 iot/scripts/squads.py --check   # the made-up names are what the script 
 
 GitHub Actions runs all of these but the smoke test on every push ([ci.yml](.github/workflows/ci.yml)), then deploys main to the Azure VM ([deploy.yml](.github/workflows/deploy.yml)).
 
-The smoke test posts three past matches and the live match so far, then checks the agent API (set pieces and running too), the plans, a call through the feed, the pages, the access rules, InfluxDB (each player's running), MQTT, every Grafana panel and the league's lion; on the ai layer the deviation email, the half-time and match reports and a report on demand; and the cameras (the synthetic ones, and a test clip for each footage camera). It runs alongside another p4n4 project.
+The smoke test posts three past matches and the live match so far, then checks the agent API (set pieces and running too), the plans, a call through the feed, the pages, the access rules, InfluxDB (each player's running), MQTT, every Grafana panel and the theme's mark; on the ai layer the deviation email, the half-time and match reports and a report on demand; and the cameras (the synthetic ones, and a test clip for each footage camera). It runs alongside another p4n4 project.
 
 ## Next
 

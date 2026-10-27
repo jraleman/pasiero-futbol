@@ -1,0 +1,58 @@
+/* The theme of the analysis room, the plan editor, the season page and the reports: the Premier League's look and feel.
+   iot/scripts/theme.py copies it to iot/ingest/analysis/theme.css; the data colours (us, them, statuses, the pitch) stay in common.css. */
+@font-face { font-family: "Barlow Condensed"; font-weight: 600; src: url(fonts/BarlowCondensed-SemiBold.ttf); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 700; src: url(fonts/BarlowCondensed-Bold.ttf); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 800; src: url(fonts/BarlowCondensed-ExtraBold.ttf); }
+@font-face { font-family: Barlow; font-weight: 400; src: url(fonts/Barlow-Regular.ttf); }
+@font-face { font-family: Barlow; font-weight: 500; src: url(fonts/Barlow-Medium.ttf); }
+@font-face { font-family: Barlow; font-weight: 600; src: url(fonts/Barlow-SemiBold.ttf); }
+@font-face { font-family: "Plex Mono"; font-weight: 400; src: url(fonts/IBMPlexMono-Regular.ttf); }
+@font-face { font-family: "Plex Mono"; font-weight: 500; src: url(fonts/IBMPlexMono-Medium.ttf); }
+
+:root {
+  color-scheme: dark;
+  /* The analysis room is dark, in the Premier League's purple: the screens and the pitch are what you look at */
+  --bg: #12001a;
+  --panel: #1e0629;
+  --raise: #2a0b37;
+  --line: #3a1349;
+  --line-2: #4f1d62;
+  --ink: #f7f2f8;
+  --ink-2: #d6c6db;
+  --muted: #a48dac;
+  /* The league's identity, never a data colour: its purple (lifted on dark, so the score stands out), its pink for the few marks that must stand out on the
+     pitch (the plan's shape, the ringed players, the line), and its gradient along the top of every page */
+  --brand: #6a0f73;
+  --highlight: #ff2882;
+  --bar: linear-gradient(90deg, #04f5ff, #00ff85 32%, #e90052 68%, #963cff);
+  --accent: #04f5ff;
+  --on-accent: #12001a;
+  --mono: "Plex Mono", ui-monospace, monospace;
+  --display: "Barlow Condensed", Barlow, system-ui, sans-serif;
+  --body: Barlow, system-ui, sans-serif;
+  /* The wordmark in the room's header: MATCH INTELLIGENCE */
+  --wordmark-case: uppercase;
+}
+@media (prefers-color-scheme: light) {
+  :root:where(:not([data-theme="dark"])) {
+    color-scheme: light;
+    --bg: #f7f4f8;
+    --panel: #ffffff;
+    --raise: #f1ebf3;
+    --line: #e3d9e6;
+    --line-2: #cfbfd5;
+    --ink: #1f0024;
+    --ink-2: #4a3150;
+    --muted: #725d79;
+    --brand: #37003c;
+    --highlight: #c4005f;
+    --accent: #37003c;
+    --on-accent: #ffffff;
+  }
+}
+/* Paper (the reports): always light */
+html.paper {
+  color-scheme: light;
+  --bg: #ece6ee; --panel: #ffffff; --raise: #f7f4f8; --line: #e3d9e6; --line-2: #cfbfd5;
+  --ink: #1f0024; --ink-2: #4a3150; --muted: #725d79; --brand: #37003c; --accent: #37003c; --on-accent: #fff;
+}

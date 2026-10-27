@@ -1,6 +1,6 @@
 #cloud-config
 # First boot: Docker, p4n4-emu, the repository, then vm/deploy.sh (README.md). Later deploys:
-# bh-deploy on the VM, the redeploy output, or the GitHub workflow.
+# pasiero-deploy on the VM, the redeploy output, or the GitHub workflow.
 package_update: true
 packages: [ca-certificates, curl, git, jq, rsync]
 
@@ -9,33 +9,33 @@ write_files:
     content: |
       { "log-driver": "json-file", "log-opts": { "max-size": "10m", "max-file": "5" } }
   # Where the VM is and what it uses; no secrets (those are in Key Vault)
-  - path: /etc/match-intelligence.env
+  - path: /etc/pasiero-futbol.env
     permissions: "0644"
     content: |
 %{ for k, v in site ~}
       ${k}=${v}
 %{ endfor ~}
-  - path: /usr/local/bin/bh-deploy
+  - path: /usr/local/bin/pasiero-deploy
     permissions: "0755"
     content: |
       #!/bin/bash
       # Deploy again (as p4n4): pull the branch (when cloned), then vm/deploy.sh, logged.
       # The pull happens here, not in deploy.sh, which it may change.
       set -o pipefail
-      . /etc/match-intelligence.env
+      . /etc/pasiero-futbol.env
       {
-        if [ -n "$REPO_URL" ] && [ -d "$HOME/bh-albion/.git" ]; then
-          git -C "$HOME/bh-albion" fetch -q origin "$GIT_REF" && git -C "$HOME/bh-albion" reset -q --hard "origin/$GIT_REF" || exit 1
+        if [ -n "$REPO_URL" ] && [ -d "$HOME/pasiero-futbol/.git" ]; then
+          git -C "$HOME/pasiero-futbol" fetch -q origin "$GIT_REF" && git -C "$HOME/pasiero-futbol" reset -q --hard "origin/$GIT_REF" || exit 1
         fi
-        "$HOME/bh-albion/deploy/azure/vm/deploy.sh" "$@"
-      } 2>&1 | tee -a /var/log/match-intelligence.log
+        "$HOME/pasiero-futbol/deploy/azure/vm/deploy.sh" "$@"
+      } 2>&1 | tee -a /var/log/pasiero-futbol.log
 
 runcmd:
-  - touch /var/log/match-intelligence.log && chown 1000:1000 /var/log/match-intelligence.log
+  - touch /var/log/pasiero-futbol.log && chown 1000:1000 /var/log/pasiero-futbol.log
   - curl -fsSL https://get.docker.com | sh
   - usermod -aG docker p4n4
   - su - p4n4 -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'
   - su - p4n4 -c 'mkdir -p p4n4/tools && git clone -q --branch ${refs.lib} https://github.com/raisga/p4n4-lib p4n4/lib && git clone -q --branch ${refs.emu} https://github.com/raisga/p4n4-emu p4n4/tools/emu'
   - su - p4n4 -c '~/.local/bin/uv tool install ~/p4n4/tools/emu --with ~/p4n4/lib'
-  - . /etc/match-intelligence.env; [ -z "$REPO_URL" ] || su - p4n4 -c "git clone -q --branch $GIT_REF $REPO_URL bh-albion"
-  - su - p4n4 -c 'if [ -d bh-albion ]; then bh-deploy; else echo "No repository: copy it with deploy/azure/vm/push.sh" >> /var/log/match-intelligence.log; fi'
+  - . /etc/pasiero-futbol.env; [ -z "$REPO_URL" ] || su - p4n4 -c "git clone -q --branch $GIT_REF $REPO_URL pasiero-futbol"
+  - su - p4n4 -c 'if [ -d pasiero-futbol ]; then pasiero-deploy; else echo "No repository: copy it with deploy/azure/vm/push.sh" >> /var/log/pasiero-futbol.log; fi'

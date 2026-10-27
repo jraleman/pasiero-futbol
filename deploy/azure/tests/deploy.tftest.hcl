@@ -83,7 +83,7 @@ run "defaults" {
     error_message = "the nuc's host: Standard_E4s_v5, x86 Ubuntu, 128 GB"
   }
   assert {
-    condition     = can(regex("^match-intelligence-[a-z0-9]{6}\\.uksouth\\.cloudapp\\.azure\\.com$", local.fqdn)) && azurerm_public_ip.vm.domain_name_label == local.label
+    condition     = can(regex("^pasiero-futbol-[a-z0-9]{6}\\.uksouth\\.cloudapp\\.azure\\.com$", local.fqdn)) && azurerm_public_ip.vm.domain_name_label == local.label
     error_message = "address: ${local.fqdn}"
   }
   assert {
@@ -97,7 +97,7 @@ run "defaults" {
   assert {
     condition = alltrue([
       for line in ["FQDN=${local.fqdn}", "KEY_VAULT=${azurerm_key_vault.main.name}", "AZURE_OPENAI_ENDPOINT=https://oai-test.openai.azure.com/",
-      "AZURE_OPENAI_DEPLOYMENT=gpt-4.1-mini", "GIT_REF=main", "bh-deploy"] : strcontains(local.cloud_init, line)
+      "AZURE_OPENAI_DEPLOYMENT=gpt-4.1-mini", "GIT_REF=main", "pasiero-deploy"] : strcontains(local.cloud_init, line)
     ])
     error_message = "cloud-init should say where the VM is and what it uses, and run the deploy"
   }
@@ -145,11 +145,11 @@ run "options" {
   command = apply
   variables {
     ml              = false
-    github_repo     = "someone/bh-albion"
+    github_repo     = "someone/pasiero-futbol"
     shutdown_time   = "2300"
     dns_label       = "pl-match"
     ssh_source_cidr = "198.51.100.0/24"
-    repo_url        = "https://github.com/someone/bh-albion"
+    repo_url        = "https://github.com/someone/pasiero-futbol"
     budget          = null
   }
 
@@ -158,7 +158,7 @@ run "options" {
     error_message = "ml = false: no Azure ML"
   }
   assert {
-    condition     = azurerm_federated_identity_credential.github[0].subject == "repo:someone/bh-albion:ref:refs/heads/main" && azurerm_role_assignment.github_vm[0].scope == azurerm_linux_virtual_machine.main.id
+    condition     = azurerm_federated_identity_credential.github[0].subject == "repo:someone/pasiero-futbol:ref:refs/heads/main" && azurerm_role_assignment.github_vm[0].scope == azurerm_linux_virtual_machine.main.id
     error_message = "the workflow on main may run commands on this VM only"
   }
   assert {
@@ -170,7 +170,7 @@ run "options" {
     error_message = "dns_label and ssh_source_cidr"
   }
   assert {
-    condition     = strcontains(local.cloud_init, "REPO_URL=https://github.com/someone/bh-albion")
+    condition     = strcontains(local.cloud_init, "REPO_URL=https://github.com/someone/pasiero-futbol")
     error_message = "the VM clones repo_url"
   }
   assert {

@@ -36,6 +36,7 @@ jobs:
           python3 iot/scripts/build_dashboard.py
           python3 ai/config/n8n/build.py
           python3 iot/scripts/squads.py --check
+          python3 iot/scripts/theme.py check
           git diff --exit-code
 
   terraform:

@@ -26,5 +26,5 @@ compute: azureml:cpu-cluster
 resources:
   shm_size: 4g        # the data loader's workers share batches through /dev/shm
 tags:
-  project: match-intelligence
+  project: pasiero-futbol
   data: synthetic

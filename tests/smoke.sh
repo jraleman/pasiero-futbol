@@ -218,8 +218,8 @@ r="$(ingest POST "/api/v1/feed/$item/action" "$SITE_TOKEN" '{"action": "confirm"
 [ "${r%% *}" = 401 ] && ok "a device's token can't make a call" || fail "site-token call: $r"
 r="$(ingest POST "/api/v1/feed/$item/action" "$READ_TOKEN" '{"action": "confirm", "by": "smoke", "note": "talk at the break"}')"
 [ "$(echo "$r" | field 'd["item"]["status"]')" = confirmed ] && ok "a call through the feed, as p4n4-api makes it" || fail "call: ${r:0:300}"
-for page in "analysis/:<title>Match Intelligence" "analysis/plan.html:Game plan" "analysis/report.html:Match report" "analysis/season.html:<title>Season" \
-            "analysis/league.json:\"BHA\"" "analysis/marks/lion.svg:Premier League"; do
+for page in "analysis/:<title data-brand" "analysis/plan.html:Game plan" "analysis/report.html:Match report" "analysis/season.html:Season" \
+            "analysis/league.json:\"BHA\"" "analysis/brand.js:const BRAND" "analysis/theme.css:--bar" "analysis/marks/mark.svg:<svg"; do
   r="$(ingest GET "/${page%%:*}")"
   [[ "$r" == "200 "*"${page#*:}"* ]] && ok "/${page%%:*} is served" || fail "/${page%%:*}: ${r:0:200}"
 done
@@ -272,12 +272,12 @@ python3 "$WORK_DIR/tests/check_dashboards.py" "$PROJECT" "$GRAFANA_USER" "$GRAFA
   "site=$SITE" "match=$PAST" "node=brighton-match-device-sim" || failed=1
 for f in fav32.png grafana_icon.svg; do
   compose exec -T grafana wget -qO- "http://localhost:3000/public/img/$f" | cmp -s - "../theme/grafana/$f" \
-    && ok "Grafana serves the league's $f" || fail "Grafana doesn't serve the league's $f"
+    && ok "Grafana serves the theme's $f" || fail "Grafana doesn't serve the theme's $f"
 done
 # The menu and login logo is a content-hashed file named in Grafana's bundle
 ICON="$(compose exec -T grafana sh -c 'grep -rhoE "static/img/grafana_icon\.[0-9a-f]+\.svg" /usr/share/grafana/public/build/*.js | head -1')"
 compose exec -T grafana cat "/usr/share/grafana/public/build/$ICON" | cmp -s - ../theme/grafana/grafana_icon.svg \
-  && ok "Grafana's menu and login show the league's lion" \
+  && ok "Grafana's menu and login show the theme's mark" \
   || fail "Grafana's logo is $ICON now: update its mount in iot/docker-compose.yml"
 
 echo "== ai layer: n8n (project $PROJECT-ai)"

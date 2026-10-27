@@ -1,8 +1,8 @@
 #!/bin/sh
-# Runs Match Intelligence on an NVIDIA Jetson (Orin Nano, JetPack with nvidia-container-toolkit)
+# Runs Pasiero Futbol on an NVIDIA Jetson (Orin Nano, JetPack with nvidia-container-toolkit)
 # as the club's match device, from this machine over SSH:
 #
-#   1. This working tree to ~/bh-albion: the loops, their overlay and what post sends for each
+#   1. This working tree to ~/pasiero-futbol: the loops, their overlay and what post sends for each
 #      source (as vm/push.sh); each layer's .env the first time only (yours, mode 600), with
 #      the links in the emails on the Jetson's address
 #   2. The iot, ai and extras layers under the Jetson's overrides (iot.yml: the shared p4n4-net;
@@ -27,23 +27,23 @@ src=${P4N4_SRC:-../p4n4}
 [ -f "$src/scripts/dev_api.py" ] || { echo "no p4n4 checkout at $src (P4N4_SRC)" >&2; exit 1; }
 say() { printf '\n== %s %s\n' "$(date +%H:%M:%S)" "$*"; }
 
-say "Project to $target:bh-albion"
+say "Project to $target:pasiero-futbol"
 rsync -az --exclude .git --exclude '.env' --exclude 'iot/data/ingest/*' --exclude 'extras/clips/*' \
     --exclude 'ai/vision/models/' --exclude 'ai/vision/shirts/real/' --exclude 'ai/vision/shirts/outputs/' \
     --exclude .cache --exclude .p4n4-api --exclude static-demo --exclude __pycache__ \
-    --exclude .terraform --exclude 'terraform.tfstate*' ./ "$target:bh-albion/"
+    --exclude .terraform --exclude 'terraform.tfstate*' ./ "$target:pasiero-futbol/"
 for layer in iot ai extras; do
-    rsync -a --ignore-existing --chmod=F600 "$layer/.env" "$target:bh-albion/$layer/.env"
+    rsync -a --ignore-existing --chmod=F600 "$layer/.env" "$target:pasiero-futbol/$layer/.env"
 done
 clips=$(python3 -c 'import json; print(" ".join(json.load(open("extras/config/clips.json"))["sources"]))')
-ssh "$target" mkdir -p bh-albion/extras/clips/analysis
+ssh "$target" mkdir -p pasiero-futbol/extras/clips/analysis
 if ls extras/clips/*.mp4 >/dev/null 2>&1; then
-    rsync -az extras/clips/*.mp4 extras/clips/vision.json "$target:bh-albion/extras/clips/"
+    rsync -az extras/clips/*.mp4 extras/clips/vision.json "$target:pasiero-futbol/extras/clips/"
 fi
 for s in $clips; do
     [ -f "extras/clips/analysis/$s/alerts.json" ] || continue
     rsync -az --delete --include alerts.json --include summary.json --include 'keyframes/***' --exclude '*' \
-        "extras/clips/analysis/$s/" "$target:bh-albion/extras/clips/analysis/$s/"
+        "extras/clips/analysis/$s/" "$target:pasiero-futbol/extras/clips/analysis/$s/"
 done
 
 say "p4n4 lib and api from $src"
@@ -54,7 +54,7 @@ rsync -az "$src/scripts/dev_api.py" "$target:p4n4-src/scripts/"
 
 # shellcheck disable=SC2087  # $host expands here, the rest on the Jetson
 ssh "$target" sh -eu <<EOF
-cd bh-albion
+cd pasiero-futbol
 sed -i "s#^ANALYSIS_PUBLIC_URL=.*#ANALYSIS_PUBLIC_URL=http://$host:8090/analysis/#" iot/.env
 sed -i -e "s#^ANALYSIS_URL=.*#ANALYSIS_URL=http://$host:8090/analysis/#" -e "s#^N8N_HOST=.*#N8N_HOST=$host#" ai/.env
 # Without Azure OpenAI, the team of agents on the Jetson's own model (team.py, AGENT_BACKEND=local)
@@ -81,12 +81,12 @@ cd ~/p4n4-src
 [ -x .venv/bin/p4n4-api ] || python3 -m venv .venv
 .venv/bin/pip install -q -e ./lib -e ./api
 pkill -f 'p4n4-src/scripts/dev_api.py' || true
-mkdir -p ~/bh-albion/.p4n4-api
-P4N4_PROJECT_DIR=\$HOME/bh-albion P4N4_API_DATA_DIR=\$HOME/bh-albion/.p4n4-api P4N4_API_DEV_USERS=true \
+mkdir -p ~/pasiero-futbol/.p4n4-api
+P4N4_PROJECT_DIR=\$HOME/pasiero-futbol P4N4_API_DATA_DIR=\$HOME/pasiero-futbol/.p4n4-api P4N4_API_DEV_USERS=true \
     P4N4_API_PORT=8000 nohup .venv/bin/python \$HOME/p4n4-src/scripts/dev_api.py \
-    < /dev/null > ~/bh-albion/.p4n4-api/dev-api.log 2>&1 &
+    < /dev/null > ~/pasiero-futbol/.p4n4-api/dev-api.log 2>&1 &
 for _ in \$(seq 60); do curl -fsS -o /dev/null http://127.0.0.1:8000/health 2>/dev/null && break; sleep 1; done
-curl -fsS -o /dev/null http://127.0.0.1:8000/health && echo "p4n4-api up" || { tail -20 ~/bh-albion/.p4n4-api/dev-api.log; exit 1; }
+curl -fsS -o /dev/null http://127.0.0.1:8000/health && echo "p4n4-api up" || { tail -20 ~/pasiero-futbol/.p4n4-api/dev-api.log; exit 1; }
 EOF
 
 say "Up on $host"

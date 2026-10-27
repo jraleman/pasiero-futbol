@@ -57,7 +57,7 @@ resource "azurerm_machine_learning_workspace" "main" {
   storage_account_id      = azurerm_storage_account.ml[0].id
   # The job's environment image is built on the cluster
   image_build_compute_name = "cpu-cluster"
-  description              = "Match Intelligence: the shirt-number model"
+  description              = "Pasiero Futbol: the shirt-number model"
   tags                     = local.tags
 
   identity {

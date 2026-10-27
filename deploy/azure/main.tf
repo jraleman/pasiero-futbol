@@ -1,4 +1,4 @@
-# Match Intelligence on Azure: the whole stack on one VM, under p4n4-emu's nuc profile (the
+# Pasiero Futbol on Azure: the whole stack on one VM, under p4n4-emu's nuc profile (the
 # club's device), behind HTTPS; its secrets in Key Vault; the agents on Azure OpenAI by the
 # VM's managed identity; the shirt-number model trained on Azure ML. README.md.
 
@@ -6,7 +6,7 @@ locals {
   suffix = random_string.suffix.result
   label  = coalesce(var.dns_label, "${var.name}-${local.suffix}")
   fqdn   = "${local.label}.${var.location}.cloudapp.azure.com"
-  tags   = { app = "match-intelligence", data = "synthetic" }
+  tags   = { app = "pasiero-futbol", data = "synthetic" }
 
   cloud_init = templatefile("${path.module}/cloud-init.yaml.tftpl", {
     site = {

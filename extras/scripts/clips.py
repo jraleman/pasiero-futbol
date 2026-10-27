@@ -81,7 +81,7 @@ from pathlib import Path
 PROJECT = Path(__file__).resolve().parents[2]
 MANIFEST = PROJECT / "extras/config/clips.json"
 CLIPS = PROJECT / "extras/clips"
-USER_AGENT = "p4n4-brighton-match-analysis/0.1 (demo footage fetch)"
+USER_AGENT = "p4n4-pasiero-futbol/0.1 (demo footage fetch)"
 
 
 def load() -> dict:

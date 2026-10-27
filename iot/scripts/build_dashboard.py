@@ -9,7 +9,8 @@ Edit this, not the JSON; Grafana reloads provisioned dashboards on its own
 
 The dashboard follows Grafana's light or dark theme, which p4n4-dashboard
 sets to its own (?theme=light|dark). The header takes its accent colours and
-name from the p4n4-dashboard theme (../theme/brand.json).
+name from the p4n4-dashboard theme (../theme/brand.json), and its bar, tint and
+mark's name from that theme's themes/<id>/theme.json (iot/scripts/theme.py).
 
 Three scopes:
   - The match (the "match" variable, the one being played by default): both
@@ -39,6 +40,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 THEME = ROOT.parent / "theme/brand.json"
+THEMES = ROOT.parent / "themes"
 OUT = ROOT / "config/grafana/provisioning/dashboards/json/match-analysis.json"
 DS = {"type": "influxdb", "uid": "influxdb-telemetry"}
 EVER = "-400d"
@@ -46,6 +48,7 @@ US, THEM = "#3987e5", "#199e70"
 STATUS = {"on_plan": ("#0ca30c", "✓ on plan"), "drifting": ("#fab219", "~ drifting"),
           "off_plan": ("#d03b3b", "✕ off plan"), "no_data": ("#6c7d70", "– no data")}
 ACCENT = ("#37003c", "#04f5ff")
+BAR = ("#04f5ff", "#00ff85 32%", "#e90052 68%", "#963cff")
 METRIC_NAMES = {
     "possession_pct": "Possession", "pass_accuracy_pct": "Pass completion", "ppda": "PPDA", "line_height_m": "Line height",
     "width_m": "Width", "length_m": "Team length", "field_tilt_pct": "Field tilt", "counterpress_pct": "Counter-press",
@@ -83,10 +86,10 @@ def label_expr(names: dict, column: str) -> str:
 HEADER_CSS = """<style>
 .ma-head{--ma-accent:@DARK@;--ma-line:color-mix(in srgb,currentColor 14%,transparent);position:relative;overflow:hidden;
   display:flex;justify-content:space-between;align-items:center;gap:24px;height:100%;padding:5px 20px 0 22px;box-sizing:border-box;
-  border:1px solid var(--ma-line);border-radius:6px;background:linear-gradient(100deg,color-mix(in srgb,#37003c 55%,transparent),transparent 66%)}
+  border:1px solid var(--ma-line);border-radius:6px;background:linear-gradient(100deg,color-mix(in srgb,@TINT@ 55%,transparent),transparent 66%)}
 .theme-light .ma-head{--ma-accent:@LIGHT@}
-/* The league's gradient along the top */
-.ma-head::before{content:"";position:absolute;inset:0 0 auto 0;height:5px;background:linear-gradient(90deg,#04f5ff,#00ff85 32%,#e90052 68%,#963cff)}
+/* The theme's bar along the top */
+.ma-head::before{content:"";position:absolute;inset:0 0 auto 0;height:5px;background:linear-gradient(90deg,@BAR@)}
 .ma-id{display:flex;align-items:center;gap:18px;min-width:0}
 .ma-id img{width:44px;height:44px;object-fit:contain}
 .ma-sep{align-self:stretch;width:1px;margin:16px 0;background:var(--ma-line)}
@@ -102,8 +105,9 @@ HEADER_CSS = """<style>
 
 
 class Builder:
-    def __init__(self, theme: dict) -> None:
+    def __init__(self, theme: dict, spec: dict | None = None) -> None:
         self.theme = theme
+        self.spec = spec or {}  # themes/<id>/theme.json
         self.id = 0
 
     def panel(self, kind: str, title: str, description: str, grid: tuple, targets: list, **extra) -> dict:
@@ -118,10 +122,13 @@ class Builder:
         light = ok(colors.get("light", {}).get("accent")) or ACCENT[0]
         dark = ok(colors.get("dark", {}).get("accent")) or ACCENT[1]
         name = self.theme.get("appName") if isinstance(self.theme.get("appName"), str) else "Match Intelligence"
-        content = HEADER_CSS.replace("@LIGHT@", light).replace("@DARK@", dark) + f"""
+        tint = ok(self.spec.get("grafana", {}).get("tint")) or ACCENT[0]
+        bar = [c for c in self.spec.get("bar", []) if isinstance(c, str) and re.fullmatch(r"#[0-9A-Fa-f]{3,8}( \d+%)?", c)] or BAR
+        mark = self.spec.get("mark") if isinstance(self.spec.get("mark"), str) else name
+        content = HEADER_CSS.replace("@LIGHT@", light).replace("@DARK@", dark).replace("@TINT@", tint).replace("@BAR@", ",".join(bar)) + f"""
 <div class="ma-head">
   <div class="ma-id">
-    <img src="./public/img/grafana_icon.svg" alt="Premier League">
+    <img src="./public/img/grafana_icon.svg" alt="{html.escape(mark)}">
     <span class="ma-sep"></span>
     <div style="min-width:0">
       <div class="ma-eyebrow">{html.escape(name)}</div>
@@ -409,7 +416,7 @@ class Builder:
             "name": name, "label": label, "type": "query", "datasource": DS, "query": query, "definition": query,
             "refresh": 2, "sort": 0, "includeAll": False, "multi": False, "current": {}}
         return {
-            "uid": "brighton-match-analysis", "title": "Match analysis", "tags": ["brighton", "p4n4"],
+            "uid": "match-analysis", "title": "Match analysis", "tags": ["brighton", "p4n4"],
             "description": "Brighton's match analysis: team data, shape, set pieces and running every 5 minutes against the staff's game plan, the season, and the club's match device.",
             "timezone": "browser", "editable": False, "graphTooltip": 1, "refresh": "10s", "schemaVersion": 41,
             "time": {"from": "now-60d", "to": "now"},
@@ -429,8 +436,10 @@ def main() -> None:
     parser.add_argument("--out", default=str(OUT))
     args = parser.parse_args()
     theme = json.loads(Path(args.theme).read_text()) if Path(args.theme).is_file() else {}
+    spec = THEMES / str(theme.get("id")) / "theme.json"
+    spec = json.loads(spec.read_text()) if spec.is_file() else {}
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
-    Path(args.out).write_text(json.dumps(Builder(theme).build(), indent=2, ensure_ascii=False) + "\n")
+    Path(args.out).write_text(json.dumps(Builder(theme, spec).build(), indent=2, ensure_ascii=False) + "\n")
     print(f"wrote {args.out}")
 
 

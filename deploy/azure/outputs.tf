@@ -30,12 +30,12 @@ output "connect" {
 
 output "progress" {
   description = "The first deploy's log (about 20 minutes: Docker, the images, the dashboard's build, Ollama's model)."
-  value       = "ssh p4n4@${azurerm_public_ip.vm.ip_address} tail -f /var/log/match-intelligence.log"
+  value       = "ssh p4n4@${azurerm_public_ip.vm.ip_address} tail -f /var/log/pasiero-futbol.log"
 }
 
 output "redeploy" {
   description = "Pull the branch on the VM and deploy it again, without SSH."
-  value       = "az vm run-command invoke -g ${azurerm_resource_group.main.name} -n ${azurerm_linux_virtual_machine.main.name} --command-id RunShellScript --scripts 'sudo -iu p4n4 bh-deploy'"
+  value       = "az vm run-command invoke -g ${azurerm_resource_group.main.name} -n ${azurerm_linux_virtual_machine.main.name} --command-id RunShellScript --scripts 'sudo -iu p4n4 pasiero-deploy'"
 }
 
 output "resource_group" {

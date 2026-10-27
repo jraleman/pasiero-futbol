@@ -1,5 +1,5 @@
 """
-brighton-match-analysis tools for the agent (agent.py loads this file at startup).
+pasiero-futbol tools for the agent (agent.py loads this file at startup).
 
 The match's numbers come from the ingest service in ../iot (its agent API),
 which computes them from what the club's match device measured every 5

@@ -1,7 +1,7 @@
 services:
 
   # ====================================================================================
-  # brighton-match-analysis: iot layer (creates p4n4-net; start it before ../ai and ../extras)
+  # pasiero-futbol: iot layer (creates p4n4-net; start it before ../ai and ../extras)
   #   club match device ──HTTPS (team contract 0.1)──► ingest ──┬──► ./data/ingest/ingest.db (SQLite: matches,
   #                                                             │      windows, plays, game plans, deviations, calls)
   #                                                             ├──► influxdb ──► grafana   (Match analysis)
@@ -156,8 +156,8 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
       - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
-      # The Premier League's lion in place of Grafana's icons (tab favicon, menu and login logo, and the dashboard's
-      # header: iot/scripts/theme_assets.py)
+      # The theme's mark in place of Grafana's icons (tab favicon, menu and login logo, and the dashboard's
+      # header: the theme in use, themes/<id>/assets.py, put in place by iot/scripts/theme.py)
       - ../theme/grafana/fav32.png:/usr/share/grafana/public/img/fav32.png:ro
       - ../theme/grafana/apple-touch-icon.png:/usr/share/grafana/public/img/apple-touch-icon.png:ro
       - ../theme/grafana/grafana_icon.svg:/usr/share/grafana/public/img/grafana_icon.svg:ro

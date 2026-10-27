@@ -3,7 +3,8 @@
 
     python3 ai/config/n8n/build.py
 
-Each Code node is src/helpers.js followed by its own file. n8n publishes the
+Each Code node is the theme's BRAND (its name and its emails' colours, from
+themes/<id>/theme.json for the theme in use), src/helpers.js, then its own file. n8n publishes the
 version named by a workflow's versionId, so every build gives a changed
 workflow a new one, derived from its content. Edit the sources and rebuild
 rather than editing the JSON; after a rebuild, set N8N_REIMPORT_WORKFLOWS=true
@@ -25,6 +26,7 @@ import uuid
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+ROOT = HERE.parents[2]
 SRC = HERE / "src"
 OUT = HERE / "workflows"
 NS = uuid.UUID("5d3c6a2e-8b1f-4c7d-a1e9-2f6a17ffcd00")
@@ -35,13 +37,21 @@ def code(*names: str) -> str:
     return "\n".join((SRC / f"{n}.js").read_text().rstrip("\n") + "\n" for n in names)
 
 
+def brand() -> str:
+    """The theme in use's name and emails' colours (iot/scripts/theme.py), as the BRAND helpers.js draws with."""
+    theme = json.loads((ROOT / "theme" / "brand.json").read_text())["id"]
+    spec = json.loads((ROOT / "themes" / theme / "theme.json").read_text())
+    value = {"name": spec["name"], **spec["email"], "bar": [c.split()[0] for c in spec["bar"]]}
+    return f"// The theme ({theme}, themes/{theme}/theme.json)\nconst BRAND = {json.dumps(value, ensure_ascii=False)};\n"
+
+
 def node(id_: str, name: str, type_: str, version, position, parameters: dict, **extra) -> dict:
     return {"parameters": parameters, "id": id_, "name": name, "type": f"n8n-nodes-base.{type_}",
             "typeVersion": version, "position": position, **extra}
 
 
 def js(id_: str, name: str, position, *sources: str) -> dict:
-    return node(id_, name, "code", 2, position, {"jsCode": code("helpers", *sources)})
+    return node(id_, name, "code", 2, position, {"jsCode": brand() + "\n" + code("helpers", *sources)})
 
 
 def webhook(id_: str, name: str, position, path: str, method: str, mode: str) -> dict:

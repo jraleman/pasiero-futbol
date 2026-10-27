@@ -9,6 +9,12 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 const playerLabel = p => `#${esc(p.number ?? "?")}${p.name ? ` <span class="pname">${esc(p.name)}</span>` : ""}`;
 const SVG = "http://www.w3.org/2000/svg";
 
+// The theme's names (brand.js, from themes/<id>/theme.json by iot/scripts/theme.py): the header's wordmark,
+// the title (or " · <name>" after a page's own), the mark's alt
+for (const el of document.querySelectorAll("[data-brand]")) el.innerHTML = BRAND[el.dataset.brand];
+if (document.querySelector("title[data-brand-suffix]")) document.title += ` · ${BRAND.name}`;
+for (const img of document.querySelectorAll("img.mark")) img.alt = BRAND.mark;
+
 // ── sign-in: the analyst's name goes on every call; the token stays in this tab ──
 const store = {
   get(key) { try { return sessionStorage.getItem(key) || localStorage.getItem(key); } catch { return null; } },
@@ -22,8 +28,8 @@ function signIn(error = "") {
   if (!dialog) {
     document.body.insertAdjacentHTML("beforeend", `
       <dialog id="signin"><form method="dialog" id="signin-form">
-        <picture><source srcset="marks/lion.svg" media="(prefers-color-scheme: light)"><img src="marks/lion-white.svg" alt="Premier League" width="52" height="56"></picture>
-        <h2>Match intelligence</h2>
+        <picture><source srcset="marks/mark.svg" media="(prefers-color-scheme: light)"><img class="mark" src="marks/mark-white.svg" alt="${esc(BRAND.mark)}" width="52" height="56"></picture>
+        <h2>${BRAND.name}</h2>
         <p>Sign in with your name: it goes on every call you make and every plan you save.</p>
         <label><span>Your name</span><input id="si-name" autocomplete="username" required maxlength="64"></label>
         <label><span>Staff token (INGEST_READ_TOKEN)</span><input id="si-token" type="password" autocomplete="current-password"></label>

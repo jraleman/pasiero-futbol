@@ -1,4 +1,4 @@
-# Hackathon submission: Premier League Match Intelligence
+# Hackathon submission: Pasiero Futbol
 
 How this project meets the hackathon's criteria ([CHALLENGE.md](CHALLENGE.md)), criterion by criterion, with where to see each one. The full description is in [README.md](README.md); the video's script is in [DEMO.md](DEMO.md).
 
@@ -6,9 +6,9 @@ How this project meets the hackathon's criteria ([CHALLENGE.md](CHALLENGE.md)), 
 
 ## The pitch
 
-> **Match Intelligence turns synthetic football events into explainable match intelligence, checked against the game plan and told for every audience.** A match device measures every match every five minutes: the press, the shape, set pieces, pass quality, ball and shot speed, and every player's running. It checks each number against the staff's game plan, and when the plan slips it explains why, from when, and what the plan asked for. A team of AI agents built with **Microsoft Agent Framework** on **Azure OpenAI** works from those numbers alone. An orchestrator calls an analyst, a coach and a narrator. They answer the staff's questions, give the bench options rather than orders, and tell each match's story for a fan, a coach, an analyst or a broadcast's captions, in 14 languages, following one player if asked. It renders in a live analysis room, Grafana, the dashboard's Video tab and n8n's reports to the staff's phones. It falls back to a local model when there's no network.
+> **Pasiero Futbol turns synthetic football events into explainable match intelligence, checked against the game plan and told for every audience.** A match device measures every match every five minutes: the press, the shape, set pieces, pass quality, ball and shot speed, and every player's running. It checks each number against the staff's game plan, and when the plan slips it explains why, from when, and what the plan asked for. A team of AI agents built with **Microsoft Agent Framework** on **Azure OpenAI** works from those numbers alone. An orchestrator calls an analyst, a coach and a narrator. They answer the staff's questions, give the bench options rather than orders, and tell each match's story for a fan, a coach, an analyst or a broadcast's captions, in 14 languages, following one player if asked. It renders in a live analysis room, Grafana, the dashboard's Video tab and n8n's reports to the staff's phones. It falls back to a local model when there's no network.
 >
-> **The problem:** clubs, broadcasters and fans get the scoreline and a wall of stats, not the story. Match Intelligence surfaces the moments that matter, explains why they mattered, and makes every match feel made for every fan.
+> **The problem:** clubs, broadcasters and fans get the scoreline and a wall of stats, not the story. Pasiero Futbol surfaces the moments that matter, explains why they mattered, and makes every match feel made for every fan.
 >
 > **Microsoft and Azure:** Microsoft Agent Framework (multi-agent orchestration, agents as tools, function middleware); Azure OpenAI (the agents' model, keys off, by the VM's managed identity through Microsoft Entra ID); Azure Virtual Machines (the whole stack, held to a club device's limits); Azure Key Vault (every secret); Azure Machine Learning (our own shirt-number model, trained on synthetic players, exported to ONNX); all from Terraform, deployed by GitHub Actions with OIDC.
 
@@ -19,7 +19,7 @@ How this project meets the hackathon's criteria ([CHALLENGE.md](CHALLENGE.md)), 
 | **The full stack** | README, Quick start: `for layer in iot ai extras; do cp $layer/.env.example $layer/.env; done`, set `AZURE_OPENAI_ENDPOINT` and `AZURE_OPENAI_DEPLOYMENT` (and a key, or Entra ID) in `ai/.env`, then `p4n4 up` (or `docker compose up -d` in `iot`, `ai`, `extras`, in that order). Analysis room <http://localhost:8090/analysis/> (token `demo-read-token`), Grafana <http://localhost:3000>, emails <http://localhost:8025>. A live match is always playing, sped up ×3; `python3 iot/scripts/simulate.py --schedule` prints when it reaches each moment. |
 | **Hosted on Azure** | `cd deploy/azure && terraform apply` ([deploy/azure/README.md](deploy/azure/README.md)): the VM deploys itself in about 20 minutes. The dashboard at `https://<name>.uksouth.cloudapp.azure.com/` (user `judge`, asked by the browser and then the app; the cameras are behind the same login), the analysis room at `:8443/analysis/`, the inbox at `:8443/mail/`; logins from `terraform output judge_login`. |
 | **Tests** | `python3 tests/test_analytics.py`, `tests/test_ingest.py`, `tests/test_local_tools.py`, `tests/test_team.py` (no Docker; the last needs `pip install -r ai/agent/requirements.txt`), `tests/test_shirts.py` (the shirt-number model); `terraform test` in `deploy/azure` (mock providers); `./tests/smoke.sh` (the whole stack, throwaway). GitHub Actions runs all but the smoke test on every push. |
-| **Licence** | MIT ([LICENSE](LICENSE)). The Premier League's and the clubs' marks, the fonts and the vision pipeline's AGPL-3.0 parts are not covered ([NOTICE.md](NOTICE.md)). |
+| **Licence** | MIT ([LICENSE](LICENSE)). Pasiero Futbol's, the Premier League's and the clubs' marks, the fonts and the vision pipeline's AGPL-3.0 parts are not covered ([NOTICE.md](NOTICE.md)). |
 
 ## (i) One pipeline with five stages
 
@@ -82,5 +82,5 @@ How this project meets the hackathon's criteria ([CHALLENGE.md](CHALLENGE.md)), 
 ## Notes
 
 - **Data.** Synthetic only. The real tracked match and the real footage the project once used were removed.
-- **Marks.** The Premier League's logo and the clubs' crests are Wikipedia's copies of their logos. The rules forbid third-party trademarks in the video without permission, so confirm with the organisers that the category allows them before uploading.
+- **Marks.** The dashboard is themed as Pasiero Futbol, the project's own brand; the Premier League theme it had is kept in `themes/pl-match-intelligence/`. The clubs' crests (and that theme's Premier League logo) are Wikipedia's copies of their logos. The rules forbid third-party trademarks in the video without permission, so confirm with the organisers that the category allows them before uploading.
 - **Players.** The contract carries shirt numbers only; the names are made up. No player ratings.

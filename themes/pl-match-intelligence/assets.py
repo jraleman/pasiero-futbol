@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-The theme's images, from the Premier League's logo (iot/ingest/analysis/marks/premier-league.svg):
-the lion and the wordmark, in the league's purple and in white.
+The Premier League theme's images, from the league's logo (src/premier-league.svg): the lion and the
+wordmark, in the league's purple and in white.
 
-    python3 iot/scripts/theme_assets.py
+    python3 themes/pl-match-intelligence/assets.py
 
-Writes:
-  iot/ingest/analysis/marks/   premier-league-white.svg, lion.svg, lion-white.svg (the pages' header, favicons)
-  theme/                       logo-dark.png, logo-light.png (the lion, a rule, MATCH INTELLIGENCE), icon.png
-  theme/grafana/               grafana_icon.svg (the lion on purple: menu, login and the dashboard's header),
-                               fav32.png, apple-touch-icon.png
+Writes, in this theme's folder (iot/scripts/theme.py use pl-match-intelligence puts them in place):
+  site/marks/   premier-league-white.svg, mark.svg, mark-white.svg (the lion: the pages' header, favicons)
+  ./            logo-dark.png, logo-light.png (the lion, a rule, MATCH INTELLIGENCE), icon.png
+  grafana/      grafana_icon.svg (the lion on purple: menu, login and the dashboard's header),
+                fav32.png, apple-touch-icon.png
 
 Needs rsvg-convert (librsvg) and ImageMagick's magick, at design time only: the outputs are committed.
 """
@@ -21,9 +21,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-MARKS = ROOT / "iot" / "ingest" / "analysis" / "marks"
-THEME = ROOT / "theme"
+THEME = Path(__file__).resolve().parent
+MARKS = THEME / "site" / "marks"
 FONT = THEME / "fonts" / "BarlowCondensed-Bold.ttf"
 PURPLE, WHITE = "#37003C", "#FFFFFF"
 VIEWBOX = "0 0 204.69599 86.213023"
@@ -32,7 +31,7 @@ LION_BOX = "0 0 80 86.213023"   # the lion alone, left of the wordmark
 
 def paths() -> tuple[str, str]:
     """The logo's two paths: (wordmark, lion)."""
-    found = re.findall(r"<path[^>]*/>", (MARKS / "premier-league.svg").read_text(encoding="utf-8"), re.S)
+    found = re.findall(r"<path[^>]*/>", (THEME / "src" / "premier-league.svg").read_text(encoding="utf-8"), re.S)
     if len(found) != 2:
         raise SystemExit("premier-league.svg: expected two paths, the wordmark and the lion")
     return found[0], found[1]
@@ -56,8 +55,8 @@ def main() -> None:
     padded = "-16 -10 112 112"
     files = {
         MARKS / "premier-league-white.svg": svg(wordmark + lion, VIEWBOX, WHITE, "Premier League"),
-        MARKS / "lion.svg": svg(lion, LION_BOX, PURPLE, "Premier League"),
-        MARKS / "lion-white.svg": svg(lion, LION_BOX, WHITE, "Premier League"),
+        MARKS / "mark.svg": svg(lion, LION_BOX, PURPLE, "Premier League"),
+        MARKS / "mark-white.svg": svg(lion, LION_BOX, WHITE, "Premier League"),
         THEME / "grafana" / "grafana_icon.svg": svg(lion, padded, WHITE, "Premier League", PURPLE),
     }
     for path, text in files.items():
@@ -77,8 +76,8 @@ def main() -> None:
                 "-fill", ink, "-draw", "rectangle 86,14 87,70",
                 "-font", str(FONT), "-pointsize", "46", "-kerning", "2", "-gravity", "west",
                 "-annotate", "+104+2", "MATCH INTELLIGENCE", str(THEME / name))
-    print("wrote", ", ".join(str(p.relative_to(ROOT)) for p in files),
-          "and theme/icon.png, logo-dark.png, logo-light.png, grafana/fav32.png, apple-touch-icon.png")
+    print("wrote", ", ".join(str(p.relative_to(THEME)) for p in files),
+          "and icon.png, logo-dark.png, logo-light.png, grafana/fav32.png, apple-touch-icon.png")
 
 
 if __name__ == "__main__":

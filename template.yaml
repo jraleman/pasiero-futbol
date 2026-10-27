@@ -2,11 +2,11 @@
 # Template metadata, validated against schema/template.schema.json
 # ==============================================================================
 schema_version: 1
-name: brighton-match-analysis
+name: pasiero-futbol
 version: 0.1.0
-title: Seagulls Match Analysis · the game plan, the press, set pieces and running, live
+title: Pasiero Futbol · match intelligence, the game plan, the press, set pieces and running, live
 description: >-
-  A demo for Brighton & Hove Albion (Premier League): the club's match device measures
+  Pasiero Futbol, a demo for Brighton & Hove Albion (Premier League): the club's match device measures
   every match every 5 minutes (both teams' data, their formation and shape in
   and out of possession, the pass network, every set piece delivered into the
   box with its routine and first contact, and every player's running) and

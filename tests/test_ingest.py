@@ -290,7 +290,7 @@ with tempfile.TemporaryDirectory() as tmp:
     ingest.AGENT_URL = ""
     check("no agent set: 503", http("GET", "/api/v1/analysis/recap", token="read-token")[0] == 503)
     status, page = http("GET", "/analysis/")
-    check("the analysis room is served", status == 200 and b"Match Intelligence" in page)
+    check("the analysis room is served", status == 200 and b'<script src="brand.js">' in page)
     check("nothing outside it", http("GET", "/analysis/../ingest.py")[0] == 404)
     check("another club's token sees none of this one", http("GET", "/api/v1/agent/match?site_id=brighton", token="other-token")[0] == 403)
     server.shutdown()

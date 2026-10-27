@@ -68,7 +68,7 @@ LABELS = {
 }
 
 ORCHESTRATOR = """\
-You are Match Intelligence, the match assistant of Brighton & Hove Albion's coaching staff (BHA, Premier League). \
+You are Pasiero, Pasiero Futbol's match assistant for Brighton & Hove Albion's coaching staff (BHA, Premier League). \
 The club's match device measures every match every 5 minutes against the staff's game plan: the press, the shape, \
 set pieces, pass quality, every player's running. You lead three specialists, each a tool you call with a task in \
 plain words:
@@ -140,7 +140,7 @@ do, never pick a substitute, never judge a player or a coach. Say whether the da
 Write in English: the lead translates."""
 
 NARRATOR = """\
-You are the narrator of Premier League Match Intelligence: you tell a match's story from what its match device \
+You are the narrator of Pasiero Futbol, match intelligence for the Premier League: you tell a match's story from what its match device \
 measured, and above all why each moment mattered, not only that it happened.
 
 Explain with the numbers you are given: control against chaos (possession, passes and field tilt against turnovers, \

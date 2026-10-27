@@ -1,4 +1,4 @@
-# Match Intelligence on Azure
+# Pasiero Futbol on Azure
 
 The whole stack on one Azure VM, as the club's match device would run it, behind HTTPS and a password login: a private deployment for the judges, not a public one. From Terraform, in one `apply`. Step by step from a new subscription: [GUIDE.md](GUIDE.md); where it stands: [REPORT.md](REPORT.md).
 
@@ -15,7 +15,7 @@ The whole stack on one Azure VM, as the club's match device would run it, behind
 | **User-assigned identity** with a GitHub federated credential (optional) | The deploy workflow signs in with OIDC (no secret in GitHub) and may only run commands on this VM |
 
 ```
-browser ──https──► Caddy :443 (the browser's login) ──► p4n4-dashboard (PL theme) ──► p4n4-api ──► the feed, the agent, InfluxDB
+browser ──https──► Caddy :443 (the browser's login) ──► p4n4-dashboard (its theme) ──► p4n4-api ──► the feed, the agent, InfluxDB
                          │      │                                    └─/grafana/──► Grafana (anonymous viewer)
                          │      └─/cameras/<id>.mp4──► p4n4-clips (the loops)
                          └ :8443 ─► /analysis/, /api/v1/ ──► ingest (the analysis room; the staff token)
@@ -51,7 +51,7 @@ The first deploy builds the dashboard's image (Flutter, about 10 minutes) and pu
 | `https://<fqdn>:8443/analysis/` | The analysis room: any name, and the staff token (`analysis_token`) |
 | `https://<fqdn>:8443/mail/` | The inbox: the staff's emails, the reports with the narrator's story (`judge`, the same password) |
 
-**Again, after a change:** push to main, and the [deploy workflow](../../.github/workflows/deploy.yml) runs `bh-deploy` on the VM once CI has passed. Without the workflow: `terraform output -raw redeploy | sh` (Azure's run command, no SSH), `ssh p4n4@<ip> bh-deploy`, or `vm/push.sh` for the working tree. `bh-deploy` pulls the branch and runs [`vm/deploy.sh`](vm/deploy.sh), which is idempotent: secrets, `.env` files, the public links, `p4n4-emu up --profile nuc --build`, the dashboard's image, the front.
+**Again, after a change:** push to main, and the [deploy workflow](../../.github/workflows/deploy.yml) runs `pasiero-deploy` on the VM once CI has passed. Without the workflow: `terraform output -raw redeploy | sh` (Azure's run command, no SSH), `ssh p4n4@<ip> pasiero-deploy`, or `vm/push.sh` for the working tree. `pasiero-deploy` pulls the branch and runs [`vm/deploy.sh`](vm/deploy.sh), which is idempotent: secrets, `.env` files, the public links, `p4n4-emu up --profile nuc --build`, the dashboard's image, the front.
 
 **The deploy workflow:** set `github_repo` and apply, then add `terraform output github`'s values as the repository's *variables* (Settings → Secrets and variables → Actions → Variables). Nothing secret: the workflow signs in with GitHub's OIDC token, which only `main` of that repository gets.
 

@@ -1,0 +1,20 @@
+{
+ "name": "Match Intelligence",
+ "title": "Match Intelligence · Premier League",
+ "mark": "Premier League",
+ "wordmark": "<b>Premier League</b>Match<br>intelligence",
+ "letterhead": "Match Intelligence · Premier League",
+ "bar": ["#04f5ff", "#00ff85 32%", "#e90052 68%", "#963cff"],
+ "grafana": {
+  "tint": "#37003c"
+ },
+ "email": {
+  "brand": "#37003c",
+  "band": "#37003c",
+  "ink": "#1f0024",
+  "muted": "#725d79",
+  "line": "#e3d9e6",
+  "bg": "#f7f4f8",
+  "font": "Barlow"
+ }
+}

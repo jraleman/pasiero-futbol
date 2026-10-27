@@ -7,7 +7,7 @@ variable "subscription_id" {
 variable "name" {
   description = "Prefix of every resource's name."
   type        = string
-  default     = "match-intelligence"
+  default     = "pasiero-futbol"
 
   validation {
     condition     = can(regex("^[a-z][a-z0-9-]{2,24}$", var.name))

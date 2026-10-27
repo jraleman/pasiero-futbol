@@ -3,9 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" href="marks/lion.svg">
-<title>Game plan · Match Intelligence</title>
+<link rel="icon" href="marks/mark.svg">
+<title data-brand-suffix>Game plan</title>
+<link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="common.css">
+<script src="brand.js"></script>
 <style>
 .bar { display: flex; align-items: center; gap: 16px; padding: 10px 20px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .bar img { width: 42px; height: 42px; object-fit: contain; }
@@ -43,7 +45,7 @@ table.targets .rm { background: none; border: 1px solid var(--line-2); border-ra
 </head>
 <body>
 <header class="bar">
-  <picture><source srcset="marks/lion.svg" media="(prefers-color-scheme: light)"><img src="marks/lion-white.svg" alt="Premier League"></picture><h1>Game plan</h1>
+  <picture><source srcset="marks/mark.svg" media="(prefers-color-scheme: light)"><img class="mark" src="marks/mark-white.svg" alt=""></picture><h1>Game plan</h1>
   <select id="match" aria-label="Which plan"></select>
   <a id="back" href="./">Back to the analysis room</a>
 </header>

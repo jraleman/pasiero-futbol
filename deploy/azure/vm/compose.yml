@@ -1,5 +1,5 @@
 # The stack's public front on the Azure VM (deploy.sh starts it after the iot, ai and extras
-# stacks): Caddy with Let's Encrypt, p4n4-dashboard in the Premier League theme, and p4n4-api.
+# stacks): Caddy with Let's Encrypt, p4n4-dashboard in the project's theme, and p4n4-api.
 #
 #   https://<fqdn>/          the dashboard (and Grafana at /grafana/, through it), the loops
 #                            (/cameras/), behind the browser's login

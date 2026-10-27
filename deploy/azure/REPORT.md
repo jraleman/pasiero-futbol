@@ -1,6 +1,6 @@
 # Azure deployment: report
 
-24–25 October 2026. Status of Match Intelligence on Microsoft Azure: what's built, what's been tested, what blocked the live deployment, and what it costs. To deploy it, follow [GUIDE.md](GUIDE.md).
+24–25 October 2026. Status of Pasiero Futbol on Microsoft Azure: what's built, what's been tested, what blocked the live deployment, and what it costs. To deploy it, follow [GUIDE.md](GUIDE.md).
 
 ## Summary
 
@@ -34,7 +34,7 @@
 | `terraform test` (mock providers, no Azure) | 6 of 6 runs pass: defaults, options, budget, bad budget, bad shutdown time, bad name. They check the VM, network, NSG, cloud-init (with no secrets in it), Key Vault and its roles, Azure OpenAI with keys off, the ML cluster scaling to zero, the budget's four alerts, and every option |
 | `tests/test_analytics.py`, `test_ingest.py`, `test_local_tools.py` | 64, 84 and 40 checks pass |
 | `tests/test_shirts.py` | 24 checks pass, including a 2-epoch training run end to end and the ONNX export read back |
-| The cloud-init template | Renders to valid YAML; `bh-deploy` passes `bash -n` |
+| The cloud-init template | Renders to valid YAML; `pasiero-deploy` passes `bash -n` |
 | `vm/Caddyfile` | Adapts with Caddy 2.11.7; routes checked |
 | `ai/vision/shirts/job.yml` | Valid against Azure ML's command-job schema |
 | `.p4n4-emu/config.yml` | Loads with p4n4-emu |
