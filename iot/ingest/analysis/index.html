@@ -267,7 +267,7 @@ table.run .num { font-family: var(--mono); }
     </section>
 
     <section class="card">
-      <header><h2>Shape</h2><span class="sub">Average positions, attacking right</span>
+      <header><h2 title="Average positions, attacking right">Shape</h2>
         <div class="right">
           <span class="seg" id="seg-team" role="group" aria-label="Team"></span>
           <span class="seg" id="seg-phase" role="group" aria-label="Phase"></span>
@@ -280,7 +280,7 @@ table.run .num { font-family: var(--mono); }
     </section>
 
     <section class="card timeline">
-      <header><h2>Match timeline</h2><span class="sub">xG per 5 minutes, key plays and deviations from the plan</span></header>
+      <header><h2 title="xG per 5 minutes, key plays and deviations from the plan">Match timeline</h2></header>
       <svg id="timeline" preserveAspectRatio="none" role="img" aria-label="Match timeline"></svg>
       <div class="legend" id="timeline-legend"></div>
     </section>
@@ -291,13 +291,13 @@ table.run .num { font-family: var(--mono); }
     </section>
 
     <section class="card" id="set-pieces">
-      <header><h2>Set pieces</h2><span class="sub">Corners, free kicks within 35 m and long throws into the box</span>
+      <header><h2 title="Corners, free kicks within 35 m and long throws into the box">Set pieces</h2>
         <div class="right"><span class="seg" id="seg-sp" role="group" aria-label="Team"></span></div></header>
       <div id="sp"></div>
     </section>
 
     <section class="card" id="running">
-      <header><h2>Running</h2><span class="sub" id="run-sub">Every player, from the tracking</span>
+      <header><h2 id="run-title" title="Every player, from the tracking">Running</h2>
         <div class="right"><span class="seg" id="seg-run" role="group" aria-label="Team"></span></div></header>
       <div id="run"></div>
     </section>
@@ -305,7 +305,7 @@ table.run .num { font-family: var(--mono); }
 
   <div class="col">
     <section class="card" id="story-card">
-      <header><h2>Match story</h2><span class="sub">The narrator agent: why the moments mattered</span></header>
+      <header><h2 title="The narrator agent: why the moments mattered">Match story</h2></header>
       <div class="story-form">
         <label>For<select id="s-audience">
           <option value="fan">A fan</option><option value="coach">The coaching staff</option>
@@ -320,11 +320,10 @@ table.run .num { font-family: var(--mono); }
     </section>
 
     <section class="card devs">
-      <header><h2>Deviations</h2>
+      <header><h2 title="A deviation opens when the last 15 minutes of a target are off the plan: flag it for the bench (F), or set it aside as expected (E). J/K: next/previous; R: reopen.">Deviations</h2>
         <div class="right"><span class="seg" role="group" aria-label="Which deviations">
           <button id="dev-pending" aria-pressed="true"></button><button id="dev-all" aria-pressed="false"></button></span></div></header>
       <ol id="devs"></ol>
-      <p class="sub" style="font-size:12px;color:var(--muted);margin:10px 0 0">A deviation opens when the last 15 minutes of a target are off the plan. <b>Flag</b> it for the bench, or set it aside as <b>expected</b>. Keys: <kbd class="mono">J</kbd>/<kbd class="mono">K</kbd> next/previous, <kbd class="mono">F</kbd> flag, <kbd class="mono">E</kbd> expected, <kbd class="mono">R</kbd> reopen.</p>
     </section>
 
     <section class="card plays">
@@ -360,7 +359,6 @@ table.run .num { font-family: var(--mono); }
       <div class="facts" id="v-facts"></div>
     </div>
   </div>
-  <p class="keys">Keys: <kbd>Space</kbd> play · <kbd>←</kbd>/<kbd>→</kbd> frame · <kbd>J</kbd>/<kbd>K</kbd> next/previous play · <kbd>Esc</kbd> close</p>
 </dialog>
 <div class="tip" id="tip" role="tooltip"></div>
 
@@ -419,7 +417,7 @@ function sideOf(which) { return which === "ours" ? ours() : theirs(); }
 function render() {
   renderBug();
   if (!state.data) {
-    for (const id of ["plan", "shape-side", "data", "devs", "plays", "sp", "run", "story"]) $(id).innerHTML = `<p class="empty">No match yet. Matches appear here as the club's device sends them.</p>`;
+    for (const id of ["plan", "shape-side", "data", "devs", "plays", "sp", "run", "story"]) $(id).innerHTML = `<p class="empty">No match yet.</p>`;
     return;
   }
   renderPlan();
@@ -467,7 +465,7 @@ function renderPlan() {
   const m = state.data.match;
   if (!a.plan) {
     $("plan-sub").textContent = "";
-    $("plan").innerHTML = `<p class="empty">No game plan for this match, and no club default. <a href="plan.html#${esc(m.site_id)}/${esc(m.match_id)}">Write one</a>: the targets are checked every 5 minutes.</p>`;
+    $("plan").innerHTML = `<p class="empty">No game plan. <a href="plan.html#${esc(m.site_id)}/${esc(m.match_id)}">Write one</a></p>`;
     return;
   }
   $("plan-sub").innerHTML = a.plan.inherited ? `<span class="tag">Club default</span>` : `by ${esc(a.plan.updated_by)}`;
@@ -479,7 +477,7 @@ function renderPlan() {
   const halves = state.data.timeline.some(w => w.period === 2);
   const rows = a.targets.map(t => `
     <tr>
-      <td class="name">${t.key ? '<span class="star" title="Key instruction">★</span>' : ""}${esc(t.name)}<small>${esc(t.description)}</small></td>
+      <td class="name" title="${esc(t.description)}">${t.key ? '<span class="star" title="Key instruction">★</span>' : ""}${esc(t.name)}</td>
       <td class="v">${esc(t.target)}</td>
       <td class="v">${esc(t.match.text)}${chip(t.match.status)}</td>
       <td class="v">${esc(t.last_15.text)}${chip(t.last_15.status)}</td>
@@ -568,7 +566,7 @@ function renderShape() {
   const phase = scope?.[state.phase];
   const stats = d.stats[state.scope]?.[side];
   if (!phase || !phase.positions.length) {
-    $("shape-side").innerHTML = `<p class="empty">Not enough of the match for this yet.</p>`;
+    $("shape-side").innerHTML = `<p class="empty">Not enough yet.</p>`;
     return;
   }
   const pos = phase.positions;
@@ -602,13 +600,13 @@ function renderShape() {
     ? [["Line height", stats?.line_height_m, "m"], ["Team length", stats?.length_m, "m"]]
     : [["Width", stats?.width_m, "m"], ["Possession", stats?.possession_pct, "%"]];
   $("shape-side").innerHTML = `
-    <div class="read">${esc(read)}<small>The shape the device reads, ${esc(PHASES[state.phase].toLowerCase())}, ${esc(SCOPES[state.scope].toLowerCase())}</small></div>
+    <div class="read" title="The shape the device reads, ${esc(PHASES[state.phase].toLowerCase())}, ${esc(SCOPES[state.scope].toLowerCase())}">${esc(read)}</div>
     ${planned ? `<div>${chip(read === planned ? "on_plan" : "off_plan")} plan: <b>${esc(planned)}</b></div>` : ""}
     <dl>${metrics.map(([k, v, u]) => `<dt>${esc(k)}</dt><dd>${v == null ? "–" : esc(String(v)) + (u === "%" ? "%" : " " + u)}</dd>`).join("")}</dl>
     ${state.phase === "in_possession" ? `<label class="check"><input type="checkbox" id="network" ${state.network ? "checked" : ""}> Pass network</label>` : ""}
     <div class="legend">
-      <span><i style="background:${fill}"></i>${esc(m[side].code)}: average position, by shirt number</span>
-      ${planned ? `<span><i class="ghost"></i>The plan's ${esc(planned)}, at the team's depth and width</span>` : ""}
+      <span title="Average position, by shirt number"><i style="background:${fill}"></i>${esc(m[side].code)}</span>
+      ${planned ? `<span title="The plan's ${esc(planned)}, at the team's depth and width"><i class="ghost"></i>Plan</span>` : ""}
       ${state.phase === "out_of_possession" ? `<span style="color:var(--highlight)">┆ Defensive line</span>` : ""}
     </div>`;
   if ($("network")) $("network").onchange = e => { state.network = e.target.checked; renderShape(); };
@@ -781,7 +779,7 @@ function renderRunning() {
       `<td class="num">${p.sprints}</td><td class="num">${p.top_speed_kmh.toFixed(1)}</td><td class="bars">${bars(p)}</td>` +
       `<td>${st ? `<span class="num">${drop(p) > 0 ? "−" : "+"}${Math.abs(Math.round(drop(p)))}%</span> ${chip(st)}` : `<span class="num" style="color:var(--muted)">–</span>`}</td></tr>`;
   }).join("");
-  $("run-sub").textContent = state.runTeam === "ours" ? `Every player; the drop is the last 15' against his first 30' (plan: ≤ ${limit}%)` : "Every player, from the tracking";
+  $("run-title").title = state.runTeam === "ours" ? `Every player; the drop is the last 15' against his first 30' (plan: ≤ ${limit}%)` : "Every player, from the tracking";
   $("run").innerHTML = `<div class="run-head"><span><b>${team.distance_km}</b>km</span><span><b>${team.hsr_m.toLocaleString()}</b>m over 19.8 km/h</span>` +
     `<span><b>${team.sprints}</b>sprints over 25.2 km/h</span></div>
     <table class="mini run"><tr><th>Player</th><th>Min</th><th>km</th><th>m/min</th><th>High-speed m</th><th>Sprints</th><th>Top km/h</th><th>m/min every 5'</th><th>Last 15' v first 30'</th></tr>${rows}</table>`;
@@ -810,7 +808,7 @@ function renderDevs() {
   if (focused) return;
   devSignature = signature;
   if (!list.length) {
-    $("devs").innerHTML = `<li class="empty">${all.length ? "Every deviation has a call. New ones show up here as the windows come in." : state.data.adherence.plan ? "On plan so far: no deviations." : "No plan, so nothing to check against."}</li>`;
+    $("devs").innerHTML = `<li class="empty">${all.length ? "All called." : state.data.adherence.plan ? "On plan." : "No plan."}</li>`;
     return;
   }
   $("devs").innerHTML = list.map(d => {
@@ -822,7 +820,7 @@ function renderDevs() {
         <span class="st">${d.back_on_plan ? `<span class="back">✓ back on plan at ${esc(d.back_on_plan.minute)}' (${esc(d.back_on_plan.value)})</span> · ` : "still off plan · "}${esc(outcome || "to call")}</span></button>
       ${open ? `<div class="body">
         <p>${esc(d.summary)}</p><p class="check">${esc(d.what_to_check)}</p>
-        ${d.status === "pending_review" ? `<textarea id="dev-note" placeholder="A note for the bench or the report (optional)" aria-label="Note">${esc(state.notes[d.deviation_id] || "")}</textarea>` : d.note ? `<p>“${esc(d.note)}”</p>` : ""}
+        ${d.status === "pending_review" ? `<textarea id="dev-note" placeholder="Note (optional)" aria-label="Note">${esc(state.notes[d.deviation_id] || "")}</textarea>` : d.note ? `<p>“${esc(d.note)}”</p>` : ""}
         <div class="buttons">${d.status === "pending_review"
           ? `<button class="flag" data-act="confirm">Flag for the bench<kbd>F</kbd></button><button class="expected" data-act="dismiss">Expected<kbd>E</kbd></button>`
           : `<span class="outcome ${d.status}">${esc(outcome)}</span><button class="reopen" data-act="reopen">Reopen<kbd>R</kbd></button>`}</div>

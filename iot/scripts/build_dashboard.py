@@ -96,14 +96,13 @@ HEADER_CSS = """<style>
 .ma-sep{align-self:stretch;width:1px;margin:16px 0;background:var(--ma-line)}
 .ma-eyebrow{font-size:12px;font-weight:600;color:var(--ma-accent);letter-spacing:.06em;text-transform:uppercase}
 .ma-title{font-size:21px;font-weight:600;line-height:1.3}
-.ma-sub{font-size:12.5px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ma-chips{display:flex;gap:8px;flex-shrink:0}
 .ma-chip{display:inline-flex;gap:7px;padding:5px 12px;border:1px solid var(--ma-line);border-radius:999px;font-size:12px;white-space:nowrap}
 .ma-chip span{opacity:.75}.ma-chip b{font-weight:500;font-family:ui-monospace,monospace;font-size:11.5px}
 .ma-sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}
 /* The theme's art (theme.json grafana.art: a file of its site/art/), in the header's empty middle */
 .ma-art{position:absolute;left:50%;top:6px;bottom:0;width:210px;background:no-repeat center/contain;pointer-events:none}
-@media (max-width:1000px){.ma-sub,.ma-legend,.ma-art{display:none}}
+@media (max-width:1000px){.ma-legend,.ma-art{display:none}}
 </style>"""
 
 
@@ -140,7 +139,6 @@ class Builder:
     <div style="min-width:0">
       <div class="ma-eyebrow">{html.escape(name)}</div>
       <div class="ma-title">${{match}}</div>
-      <div class="ma-sub">Measured by the club's match device every 5 minutes, against the staff's game plan</div>
     </div>
   </div>
   <div class="ma-chips">

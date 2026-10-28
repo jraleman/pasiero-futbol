@@ -52,27 +52,23 @@ table.targets .rm { background: none; border: 1px solid var(--line-2); border-ra
 <main>
   <div class="notice" id="notice" hidden></div>
   <section class="card">
-    <h2>The plan</h2>
-    <p class="help">What the staff want from the team. The club's device measures every 5 minutes; a target off the plan for 15 minutes opens a deviation for the analyst.</p>
+    <h2 title="What the staff want from the team. The club&#x27;s device measures every 5 minutes; a target off the plan for 15 minutes opens a deviation for the analyst.">The plan</h2>
     <label class="field">Title<input type="text" id="title" maxlength="120" placeholder="e.g. Press their build-up, attack their right back"></label>
   </section>
   <section class="card">
-    <h2>Shape</h2>
-    <p class="help">The formation the device should read in and out of possession. Leave one empty to not check it.</p>
+    <h2 title="The formation the device should read in and out of possession. Leave one empty to not check it.">Shape</h2>
     <div class="shapes">
       <div><label class="field">In possession<select id="shape-in"></select></label><div class="pitch"><svg id="pitch-in" viewBox="-4 -4 113 76"></svg></div></div>
       <div><label class="field">Out of possession<select id="shape-out"></select></label><div class="pitch"><svg id="pitch-out" viewBox="-4 -4 113 76"></svg></div></div>
     </div>
   </section>
   <section class="card">
-    <h2>Targets</h2>
-    <p class="help">Each one is checked over the match so far and the last 15 minutes. ★ marks a key instruction: its deviations are high priority and reach the staff's phones. The tolerance is how far off counts as drifting rather than off plan.</p>
+    <h2 title="Each one is checked over the match so far and the last 15 minutes. ★ marks a key instruction: its deviations are high priority and reach the staff&#x27;s phones. The tolerance is how far off counts as drifting rather than off plan.">Targets</h2>
     <table class="targets"><thead><tr><th>Metric</th><th></th><th>Value</th><th>Tolerance</th><th>★ Key</th><th></th></tr></thead><tbody id="targets"></tbody></table>
     <button class="add" id="add">+ Add a target</button>
   </section>
   <section class="card">
-    <h2>Instructions and the opponent</h2>
-    <p class="help">For the reports and the bench: one instruction per line, and what we know about them.</p>
+    <h2 title="For the reports and the bench: one instruction per line, and what we know about them.">Instructions and the opponent</h2>
     <label class="field">Instructions<textarea id="instructions" placeholder="Back four step up together on every back pass"></textarea></label>
     <label class="field" style="margin-top:10px">Opponent notes<textarea id="notes"></textarea></label>
   </section>

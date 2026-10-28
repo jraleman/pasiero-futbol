@@ -10,7 +10,7 @@
   "dark": "logo-dark.png"
  },
  "platform": "pasiero",
- "tagline": "Pasiero Futbol, match intelligence for the Premier League: a match device measures every match every 5 minutes (the press, the shape, set pieces, every player's running, pass quality and ball speed), explains what drifts off the game plan and why, and brings it to the analyst, the bench and the staff live, in the reports after, and through an assistant.",
+ "tagline": "Match intelligence for the Premier League.",
  "fonts": {
   "display": "Fredoka",
   "mono": "IBM Plex Mono"

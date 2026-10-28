@@ -50,20 +50,20 @@ table.mini td .bar-in { display: inline-block; height: 8px; border-radius: 2px; 
 <main>
   <div class="two">
     <section class="card">
-      <header><h2>Our set pieces</h2><span class="sub">Deliveries into the box, by the club's routines</span></header>
+      <header><h2 title="Deliveries into the box, by the club&#x27;s routines">Our set pieces</h2></header>
       <div id="for"></div>
     </section>
     <section class="card">
-      <header><h2>Their set pieces</h2><span class="sub">What we faced, and who won the first ball</span></header>
+      <header><h2 title="What we faced, and who won the first ball. “First contact” here is theirs: the lower, the better we defended. Their routines aren't named: the device names only ours.">Their set pieces</h2></header>
       <div id="against"></div>
     </section>
   </div>
   <section class="card">
-    <header><h2>Set pieces, match by match</h2><span class="sub">Ours and theirs</span></header>
+    <header><h2 title="Ours and theirs">Set pieces, match by match</h2></header>
     <div id="matches"></div>
   </section>
   <section class="card">
-    <header><h2>Squad running</h2><span class="sub">Per 90 minutes, over the matches played; high-speed running over 19.8 km/h, sprints over 25.2 km/h</span></header>
+    <header><h2 title="Per 90 minutes, over the matches played; high-speed running over 19.8 km/h, sprints over 25.2 km/h">Squad running</h2></header>
     <div class="two"><div id="squad"></div><div id="team-run"></div></div>
   </section>
 </main>
@@ -136,8 +136,7 @@ async function load() {
   if (f.deliveries) map("map-for", sp.deliveries.for, us);
   $("against").innerHTML = a.deliveries ? totals(a) + `<div class="split"><div><div class="pitch"><svg id="map-against" viewBox="50 -5 59 78" role="img" aria-label="Their deliveries"></svg></div>${legend}</div>
       <div>${groupTable(a.by_delivery, "delivery", "Where", v => ({ near_post: "Near post", far_post: "Far post", six_yard: "Six-yard box", penalty_spot: "Penalty spot", edge: "Edge of the box", short: "Short", other: "Direct, at goal" })[v] || v)}
-      <div style="height:10px"></div>${state.opponent ? groupTable(a.by_kind, "kind", "Kind", v => SP_KINDS[v] || v) : groupTable(a.by_opponent, "opponent", "Opponent", v => club(v)?.name || v)}</div></div>
-      <p class="note">“First contact” here is theirs: the lower, the better we defended. Their routines aren't named: the device names only ours.</p>`
+      <div style="height:10px"></div>${state.opponent ? groupTable(a.by_kind, "kind", "Kind", v => SP_KINDS[v] || v) : groupTable(a.by_opponent, "opponent", "Opponent", v => club(v)?.name || v)}</div></div>`
     : `<p class="empty">No set pieces against us in this period.</p>`;
   if (a.deliveries) map("map-against", sp.deliveries.against, "They");
   // Match by match
