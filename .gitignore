@@ -27,3 +27,8 @@ static-demo/
 # crops (ai/vision/shirts/real.py: SoccerTrack v2's footage, kept off the repository like the clips)
 ai/vision/shirts/outputs/
 ai/vision/shirts/real/
+
+# The static site (deploy/pages): its recording of the stack, the build and its work
+deploy/pages/recording/
+deploy/pages/site/
+deploy/pages/.work/
