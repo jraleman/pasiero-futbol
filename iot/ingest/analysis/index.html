@@ -628,7 +628,8 @@ function renderTimeline() {
     out += `<text x="${x(0) - 4}" y="${mid - h(v) + 4}" text-anchor="end">${v.toFixed(1)}</text>`;
   }
   for (const w of d.timeline) {
-    const x0 = x(minuteX(w.period, w.start_s)) + 1, x1 = x(minuteX(w.period, Math.min(w.end_s, w.start_s + 300))) - 1;
+    // A window only just started is narrower than the gaps between them
+    const x0 = x(minuteX(w.period, w.start_s)) + 1, x1 = Math.max(x0, x(minuteX(w.period, Math.min(w.end_s, w.start_s + 300))) - 1);
     const a = w[us].xg, b = w[them].xg;
     const tip = `${esc(w.label)}${w.final ? "" : " (being played)"}<br><span class="sw" style="background:var(--us)"></span>${esc(m.us.code)} xG <b>${a.toFixed(2)}</b>, ${w[us].shots} shots` +
                 `<br><span class="sw" style="background:var(--them)"></span>${esc(m.opponent.code)} xG <b>${b.toFixed(2)}</b>, ${w[them].shots} shots`;

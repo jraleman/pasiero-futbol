@@ -1,6 +1,6 @@
 # Hackathon submission: Pasiero Futbol
 
-How this project meets the hackathon's criteria ([CHALLENGE.md](CHALLENGE.md)), criterion by criterion, with where to see each one. The full description is in [README.md](README.md); the video's script is in [DEMO.md](DEMO.md).
+How this project meets the hackathon's criteria ([CHALLENGE.md](CHALLENGE.md)), criterion by criterion, with where to see each one. The overview is in [README.md](README.md), the details in [docs/REFERENCE.md](docs/REFERENCE.md); the video's script is in [DEMO.md](DEMO.md).
 
 **Status:** ✓ covered · ◐ partly · ✗ not covered.
 

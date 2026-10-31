@@ -8,7 +8,8 @@ The static site for GitHub Pages, from the recording (record.py): no stack behin
 
     /             p4n4-dashboard's in-browser demo (P4N4_DEMO) in the theme in use: demo/store.json (store.py),
                   the cameras' clips, the feed's pictures; Grafana's tab shows grafana/
-    analysis/     the analysis room, plan editor, season page and reports, answered from the recording (static.js)
+    analysis/     the analysis room, plan editor, season page and reports, answered from the recording (static.js),
+                  with the live match the demo was presented on replayed as it was played (replay.py)
     grafana/      Grafana's Match analysis board, a snapshot per match
     reports/      the emails n8n sent the staff
 
@@ -16,6 +17,7 @@ The static site for GitHub Pages, from the recording (record.py): no stack behin
     PAGES_PASSWORD  the dashboard's sign-in password, for admin, power and normie (default pasiero): it's
                     checked in the browser and keeps casual visitors out, nothing more
     P4N4_SRC        p4n4's sources (default ../p4n4 beside this repo), for its dashboard/
+    PAGES_REPLAY    the replayed match (default EPL-20261027-2324-BHA-HUL, the demo's), from recording/replay/
 """
 
 from __future__ import annotations
@@ -39,6 +41,7 @@ WORK = HERE / ".work"
 SITE_URL = os.environ.get("PAGES_URL", "https://jraleman.github.io/pasiero-futbol/").rstrip("/") + "/"
 PASSWORD = os.environ.get("PAGES_PASSWORD", "pasiero")
 DASHBOARD = Path(os.environ.get("P4N4_SRC", ROOT.parent / "p4n4")) / "dashboard"
+REPLAY = os.environ.get("PAGES_REPLAY", "EPL-20261027-2324-BHA-HUL")
 SCRIPTS = '<script src="brand.js"></script>'
 
 
@@ -83,6 +86,10 @@ def analysis() -> None:
     shutil.copytree(REC / "analysis", data)
     shutil.copytree(REC / "stories", data / "stories")
     shutil.copyfile(REC / "stories.json", data / "stories.json")
+    if (REC / "replay" / REPLAY).is_dir():
+        shutil.copytree(REC / "replay" / REPLAY, data / "replay")
+    else:
+        print(f"no replay of {REPLAY}: python3 deploy/pages/replay.py --match {REPLAY}", file=sys.stderr)
 
 
 def grafana() -> None:
