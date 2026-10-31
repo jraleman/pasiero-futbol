@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="marks/mark.svg">
+<title data-brand-suffix>Game plan</title>
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="common.css">
+<script src="brand.js"></script>
+<script src="static.js"></script>
+<style>
+.bar { display: flex; align-items: center; gap: 16px; padding: 10px 20px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.bar img { width: 42px; height: 42px; object-fit: contain; }
+.bar h1 { margin: 0; font: 800 26px var(--display); text-transform: uppercase; letter-spacing: .04em; }
+.bar select { background: var(--raise); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; min-width: 260px; }
+.bar a { margin-left: auto; color: var(--ink); border: 1px solid var(--line-2); border-radius: 6px; padding: 6px 10px; text-decoration: none; font-size: 13px; font-weight: 600; }
+main { max-width: 1120px; margin: 0 auto; padding: 18px 20px 40px; display: grid; gap: 16px; }
+section.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+section.card h2 { margin: 0 0 4px; font: 700 21px var(--display); text-transform: uppercase; letter-spacing: .04em; }
+section.card > p.help { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+.notice { border: 1px solid var(--line-2); border-radius: 8px; padding: 10px 12px; background: var(--raise); font-size: 14px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.notice.inherited { border-color: var(--drift); }
+label.field { display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); }
+input[type=text], input[type=number], select, textarea { background: var(--raise); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; }
+textarea { min-height: 90px; resize: vertical; width: 100%; }
+.shapes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.shapes .pitch { margin-top: 8px; }
+table.targets { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.targets th { text-align: left; font-weight: 500; color: var(--muted); font-size: 12px; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+table.targets td { padding: 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.targets td small { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; max-width: 420px; }
+table.targets input[type=number] { width: 90px; }
+table.targets select.metric { width: 100%; max-width: 290px; }
+table.targets .rm { background: none; border: 1px solid var(--line-2); border-radius: 6px; padding: 4px 8px; cursor: pointer; color: var(--ink-2); }
+.add { margin-top: 10px; background: none; border: 1px dashed var(--line-2); border-radius: 6px; padding: 7px 12px; cursor: pointer; color: var(--ink-2); }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; position: sticky; bottom: 0; background: var(--bg); padding: 12px 0; border-top: 1px solid var(--line); }
+.actions button { border: 0; border-radius: 6px; padding: 10px 18px; font-weight: 600; cursor: pointer; }
+.actions .save { background: var(--accent); color: var(--on-accent); }
+.actions .ghost { background: var(--raise); border: 1px solid var(--line-2); }
+.actions .danger { background: transparent; border: 1px solid var(--off); color: var(--off); }
+.actions .msg { font-size: 13px; color: var(--ink-2); }
+.actions .msg.err { color: var(--off); }
+@media (max-width: 800px) { .shapes { grid-template-columns: 1fr; } table.targets small { display: none; } }
+</style>
+</head>
+<body>
+<header class="bar">
+  <picture><source srcset="marks/mark.svg" media="(prefers-color-scheme: light)"><img class="mark" src="marks/mark-white.svg" alt=""></picture><h1>Game plan</h1>
+  <select id="match" aria-label="Which plan"></select>
+  <a id="back" href="./">Back to the analysis room</a>
+</header>
+<main>
+  <div class="notice" id="notice" hidden></div>
+  <section class="card">
+    <h2 title="What the staff want from the team. The club&#x27;s device measures every 5 minutes; a target off the plan for 15 minutes opens a deviation for the analyst.">The plan</h2>
+    <label class="field">Title<input type="text" id="title" maxlength="120" placeholder="e.g. Press their build-up, attack their right back"></label>
+  </section>
+  <section class="card">
+    <h2 title="The formation the device should read in and out of possession. Leave one empty to not check it.">Shape</h2>
+    <div class="shapes">
+      <div><label class="field">In possession<select id="shape-in"></select></label><div class="pitch"><svg id="pitch-in" viewBox="-4 -4 113 76"></svg></div></div>
+      <div><label class="field">Out of possession<select id="shape-out"></select></label><div class="pitch"><svg id="pitch-out" viewBox="-4 -4 113 76"></svg></div></div>
+    </div>
+  </section>
+  <section class="card">
+    <h2 title="Each one is checked over the match so far and the last 15 minutes. ★ marks a key instruction: its deviations are high priority and reach the staff&#x27;s phones. The tolerance is how far off counts as drifting rather than off plan.">Targets</h2>
+    <table class="targets"><thead><tr><th>Metric</th><th></th><th>Value</th><th>Tolerance</th><th>★ Key</th><th></th></tr></thead><tbody id="targets"></tbody></table>
+    <button class="add" id="add">+ Add a target</button>
+  </section>
+  <section class="card">
+    <h2 title="For the reports and the bench: one instruction per line, and what we know about them.">Instructions and the opponent</h2>
+    <label class="field">Instructions<textarea id="instructions" placeholder="Back four step up together on every back pass"></textarea></label>
+    <label class="field" style="margin-top:10px">Opponent notes<textarea id="notes"></textarea></label>
+  </section>
+  <div class="actions">
+    <button class="save" id="save">Save the plan</button>
+    <button class="ghost" id="copy">Start from the club default</button>
+    <button class="danger" id="remove">Remove this match's plan</button>
+    <span class="msg" id="msg"></span>
+  </div>
+</main>
+<script src="common.js"></script>
+<script>
+"use strict";
+let catalog = null, matches = [], site = null, which = "default", plan = null, inherited = false;
+const metricInfo = k => catalog.metrics.find(m => m.metric === k);
+
+function shapeOptions(sel, value) {
+  sel.innerHTML = `<option value="">Not checked</option>` + catalog.formations.map(f => `<option ${f === value ? "selected" : ""}>${f}</option>`).join("");
+}
+function drawShape(svg, name) {
+  svg.innerHTML = "";
+  pitchLines(svg);
+  if (!FORMATIONS[name]) return;
+  // The template at a typical depth and width: back line 30 m out, 40 m deep, 50 m wide
+  el("circle", { class: "disc", cx: 6, cy: 34, r: 1.9, fill: "var(--highlight)" }, svg);
+  for (const [d, w] of FORMATIONS[name]) el("circle", { cx: 28 + d * 42, cy: 9 + w * 50, r: 2.1, fill: "var(--brand)", stroke: "#fff", "stroke-width": .3 }, svg);
+}
+
+function row(t = {}) {
+  const tr = document.createElement("tr");
+  const info = metricInfo(t.metric) || catalog.metrics[0];
+  tr.innerHTML = `
+    <td><select class="metric">${catalog.metrics.map(m => `<option value="${m.metric}" ${m.metric === info.metric ? "selected" : ""}>${esc(m.name)}</option>`).join("")}</select><small></small></td>
+    <td><select class="op"><option value=">=">≥ at least</option><option value="<=">≤ at most</option></select></td>
+    <td><input type="number" class="value" step="0.1" required> <span class="unit"></span></td>
+    <td><input type="number" class="tol" step="0.1" min="0"></td>
+    <td><input type="checkbox" class="key" aria-label="Key instruction"></td>
+    <td><button class="rm" type="button" aria-label="Remove">✕</button></td>`;
+  const sel = tr.querySelector(".metric");
+  const sync = fresh => {
+    const m = metricInfo(sel.value);
+    tr.querySelector("small").textContent = m.description;
+    tr.querySelector(".unit").textContent = m.unit;
+    tr.querySelector(".tol").placeholder = m.tolerance;
+    if (fresh) tr.querySelector(".op").value = m.op;
+  };
+  sel.onchange = () => sync(true);
+  tr.querySelector(".op").value = t.op || info.op;
+  tr.querySelector(".value").value = t.value ?? "";
+  tr.querySelector(".tol").value = t.tolerance ?? "";
+  tr.querySelector(".key").checked = !!t.key;
+  tr.querySelector(".rm").onclick = () => tr.remove();
+  sync(false);
+  $("targets").appendChild(tr);
+}
+
+function fill(doc) {
+  doc = doc || { title: "", formation: {}, targets: [], instructions: [], opponent_notes: "" };
+  $("title").value = doc.title || "";
+  shapeOptions($("shape-in"), doc.formation?.in_possession);
+  shapeOptions($("shape-out"), doc.formation?.out_of_possession);
+  drawShape($("pitch-in"), doc.formation?.in_possession);
+  drawShape($("pitch-out"), doc.formation?.out_of_possession);
+  $("targets").innerHTML = "";
+  for (const t of doc.targets || []) row(t);
+  $("instructions").value = (doc.instructions || []).join("\n");
+  $("notes").value = doc.opponent_notes || "";
+}
+
+function collect() {
+  return {
+    title: $("title").value.trim(),
+    formation: { in_possession: $("shape-in").value || null, out_of_possession: $("shape-out").value || null },
+    targets: [...$("targets").querySelectorAll("tr")].map(tr => ({
+      metric: tr.querySelector(".metric").value, op: tr.querySelector(".op").value,
+      value: parseFloat(tr.querySelector(".value").value),
+      ...(tr.querySelector(".tol").value !== "" ? { tolerance: parseFloat(tr.querySelector(".tol").value) } : {}),
+      key: tr.querySelector(".key").checked,
+    })),
+    instructions: $("instructions").value.split("\n").map(s => s.trim()).filter(Boolean),
+    opponent_notes: $("notes").value.trim(),
+    by: auth.name,
+  };
+}
+
+async function load() {
+  const res = await api(`/api/v1/plans/${encodeURIComponent(which)}?site_id=${encodeURIComponent(site)}`);
+  plan = res.doc;
+  inherited = !!res.inherited;
+  const m = matches.find(x => x.match_id === which);
+  const notice = $("notice");
+  notice.hidden = false;
+  notice.className = "notice" + (inherited ? " inherited" : "");
+  if (which === "default") {
+    notice.innerHTML = plan ? `The <b>club default</b>: every match without a plan of its own is measured against it. Saved by ${esc(res.updated_by)}, ${esc(when(res.updated_at))}.`
+      : "No club default yet: write the plan every match starts from.";
+  } else if (!plan) {
+    notice.innerHTML = `${esc(m ? `${m.home.code} v ${m.away.code}, ${when(m.kickoff)}` : which)} has no plan, and there's no club default.`;
+  } else if (inherited) {
+    notice.innerHTML = `${esc(m ? `${m.home.code} v ${m.away.code}` : which)} has no plan of its own: it uses the <b>club default</b>, shown below. Saving makes this match's own plan.`;
+  } else {
+    notice.innerHTML = `${esc(m ? `${m.home.code} v ${m.away.code}, ${when(m.kickoff)}` : which)}: this match's own plan, saved by ${esc(res.updated_by)}, ${esc(when(res.updated_at))}.` +
+      (m && m.status !== "scheduled" ? ` <span class="tag">${esc(MATCH_STATE[m.status])}: changes apply from the next 5 minutes</span>` : "");
+  }
+  fill(plan);
+  $("copy").hidden = which === "default";
+  $("remove").hidden = which === "default" ? !plan : inherited || !plan;
+  $("remove").textContent = which === "default" ? "Remove the club default" : "Remove this match's plan";
+  $("back").href = which === "default" ? "./" : `./#${encodeURIComponent(site)}/${encodeURIComponent(which)}`;
+  $("msg").textContent = ""; $("msg").className = "msg";
+}
+
+async function start() {
+  try {
+    catalog = await api("/api/v1/plans/catalog");
+    matches = (await api("/api/v1/analysis/matches")).matches || [];
+  } catch { return; }
+  const parts = decodeURIComponent(location.hash.slice(1)).split("/");
+  site = (parts.length === 2 && parts[0]) || matches[0]?.site_id || "brighton";
+  which = parts.length === 2 && parts[1] ? parts[1] : (matches.find(m => m.status !== "full_time")?.match_id || "default");
+  $("match").innerHTML = `<option value="default">Club default (every match without its own)</option>` + matches.map(m =>
+    `<option value="${esc(m.match_id)}" ${m.match_id === which ? "selected" : ""}>${esc(m.kickoff.slice(0, 10))} · ${esc(m.home.code)} v ${esc(m.away.code)}` +
+    ` · ${esc(MATCH_STATE[m.status])}${m.plan === "own" ? " · own plan" : ""}</option>`).join("");
+  $("match").value = which;
+  await load();
+}
+$("match").onchange = e => { which = e.target.value; history.replaceState(null, "", `#${site}/${which}`); load(); };
+$("shape-in").onchange = e => drawShape($("pitch-in"), e.target.value);
+$("shape-out").onchange = e => drawShape($("pitch-out"), e.target.value);
+$("add").onclick = () => row({});
+$("copy").onclick = async () => {
+  try { const d = await api(`/api/v1/plans/default?site_id=${encodeURIComponent(site)}`); if (d.doc) fill(d.doc); $("msg").textContent = "Filled in from the club default: change what this match needs, then save."; } catch {}
+};
+$("save").onclick = async () => {
+  const body = collect();
+  if (body.targets.some(t => Number.isNaN(t.value))) { $("msg").textContent = "Every target needs a value."; $("msg").className = "msg err"; return; }
+  try {
+    await api(`/api/v1/plans/${encodeURIComponent(which)}?site_id=${encodeURIComponent(site)}`, { method: "PUT", body: JSON.stringify(body) });
+    await load();
+    $("msg").textContent = "Saved. The analysis room checks the next windows against it.";
+  } catch (e) { if (e.message !== "401") { $("msg").textContent = "Not saved: " + e.message; $("msg").className = "msg err"; } }
+};
+$("remove").onclick = async () => {
+  if (!confirm(which === "default" ? "Remove the club default? Matches without their own plan won't be checked." : "Remove this match's plan? It goes back to the club default.")) return;
+  try { await api(`/api/v1/plans/${encodeURIComponent(which)}?site_id=${encodeURIComponent(site)}`, { method: "DELETE" }); await load(); $("msg").textContent = "Removed."; } catch {}
+};
+onSignedIn = start;
+leagueReady.then(() => { if (!auth.name) signIn(); else start(); });
+</script>
+</body>
+</html>

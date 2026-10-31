@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reports</title>
+<link rel="icon" href="../analysis/marks/mark.svg">
+<link rel="stylesheet" href="../analysis/theme.css">
+<style>
+  /* The emails n8n sent the staff about the recorded matches (record.py), as Mailpit showed them */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 14px/1.4 var(--body); }
+  body { display: grid; grid-template-columns: minmax(260px, 360px) 1fr; grid-template-rows: auto 1fr; }
+  header { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; padding: 10px 16px;
+           border-bottom: 1px solid var(--line); position: relative; }
+  header::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px; background: var(--bar); }
+  header img { width: 28px; height: 30px; }
+  header b { font: 600 17px var(--display); }
+  header a { margin-left: auto; color: var(--accent); }
+  ul { list-style: none; margin: 0; padding: 0; overflow: auto; border-right: 1px solid var(--line); }
+  li button { all: unset; box-sizing: border-box; display: block; width: 100%; padding: 10px 16px; cursor: pointer;
+              border-bottom: 1px solid var(--line); }
+  li button:hover, li button[aria-current="true"] { background: var(--raise); }
+  li button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .subj { display: block; font-weight: 600; }
+  .meta { display: block; font-size: 12px; color: var(--muted); }
+  iframe { width: 100%; height: 100%; border: 0; background: #fff; }
+  @media (max-width: 720px) {
+    body { grid-template-columns: 1fr; grid-template-rows: auto 40vh 1fr; }
+    ul { border-right: 0; border-bottom: 1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <picture><source srcset="../analysis/marks/mark.svg" media="(prefers-color-scheme: light)"><img src="../analysis/marks/mark-white.svg" alt=""></picture>
+  <b>Reports</b>
+  <a href="../analysis/">Analysis room</a>
+</header>
+<ul id="list"></ul>
+<iframe id="view" title="The email"></iframe>
+<script>
+"use strict";
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const when = iso => new Date(iso).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+fetch("messages.json").then(r => r.json()).then(messages => {
+  const list = document.getElementById("list");
+  list.innerHTML = messages.map(m => `<li><button data-id="${esc(m.id)}"><span class="subj">${esc(m.subject)}</span>` +
+    `<span class="meta">${esc(m.to.join(", "))} · ${esc(when(m.at))}</span></button></li>`).join("");
+  const open = id => {
+    document.getElementById("view").src = `mail/${encodeURIComponent(id)}.html`;
+    for (const b of list.querySelectorAll("button")) b.setAttribute("aria-current", String(b.dataset.id === id));
+    history.replaceState(null, "", `#${id}`);
+  };
+  list.onclick = e => { const b = e.target.closest("button"); if (b) open(b.dataset.id); };
+  const first = messages.find(m => m.id === location.hash.slice(1)) || messages.find(m => /^Half-time/.test(m.subject)) || messages[0];
+  if (first) open(first.id);
+});
+</script>
+</body>
+</html>

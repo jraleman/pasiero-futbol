@@ -1,0 +1,226 @@
+[
+ {
+  "match_id": "EPL-20261028-0304-BHA-MUN",
+  "audience": "fan",
+  "language": "en",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_fan_language_en_match_id_EPL-20261028-0304-BHA-MUN_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261028-0304-BHA-MUN",
+  "audience": "coach",
+  "language": "en",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_coach_language_en_match_id_EPL-20261028-0304-BHA-MUN_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261028-0304-BHA-MUN",
+  "audience": "analyst",
+  "language": "en",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_analyst_language_en_match_id_EPL-20261028-0304-BHA-MUN_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261028-0304-BHA-MUN",
+  "audience": "broadcast",
+  "language": "en",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_broadcast_language_en_match_id_EPL-20261028-0304-BHA-MUN_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261028-0304-BHA-MUN",
+  "audience": "fan",
+  "language": "es",
+  "focus": "7",
+  "part": "full",
+  "key": "analysis_recap_audience_fan_focus_7_language_es_match_id_EPL-20261028-0304-BHA-MUN_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261028-0304-BHA-MUN",
+  "audience": "coach",
+  "language": "es",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_coach_language_es_match_id_EPL-20261028-0304-BHA-MUN_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261028-0220-BHA-MCI",
+  "audience": "fan",
+  "language": "en",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_fan_language_en_match_id_EPL-20261028-0220-BHA-MCI_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261028-0220-BHA-MCI",
+  "audience": "coach",
+  "language": "en",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_coach_language_en_match_id_EPL-20261028-0220-BHA-MCI_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261028-0220-BHA-MCI",
+  "audience": "analyst",
+  "language": "en",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_analyst_language_en_match_id_EPL-20261028-0220-BHA-MCI_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261028-0220-BHA-MCI",
+  "audience": "broadcast",
+  "language": "en",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_broadcast_language_en_match_id_EPL-20261028-0220-BHA-MCI_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261028-0220-BHA-MCI",
+  "audience": "fan",
+  "language": "es",
+  "focus": "7",
+  "part": "full",
+  "key": "analysis_recap_audience_fan_focus_7_language_es_match_id_EPL-20261028-0220-BHA-MCI_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261028-0220-BHA-MCI",
+  "audience": "coach",
+  "language": "es",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_coach_language_es_match_id_EPL-20261028-0220-BHA-MCI_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261028-0136-BHA-LIV",
+  "audience": "fan",
+  "language": "en",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_fan_language_en_match_id_EPL-20261028-0136-BHA-LIV_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261028-0136-BHA-LIV",
+  "audience": "coach",
+  "language": "en",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_coach_language_en_match_id_EPL-20261028-0136-BHA-LIV_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261028-0136-BHA-LIV",
+  "audience": "analyst",
+  "language": "en",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_analyst_language_en_match_id_EPL-20261028-0136-BHA-LIV_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261028-0136-BHA-LIV",
+  "audience": "broadcast",
+  "language": "en",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_broadcast_language_en_match_id_EPL-20261028-0136-BHA-LIV_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261028-0136-BHA-LIV",
+  "audience": "fan",
+  "language": "es",
+  "focus": "7",
+  "part": "full",
+  "key": "analysis_recap_audience_fan_focus_7_language_es_match_id_EPL-20261028-0136-BHA-LIV_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261028-0136-BHA-LIV",
+  "audience": "coach",
+  "language": "es",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_coach_language_es_match_id_EPL-20261028-0136-BHA-LIV_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261028-0052-BHA-LEE",
+  "audience": "fan",
+  "language": "en",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_fan_language_en_match_id_EPL-20261028-0052-BHA-LEE_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261028-0052-BHA-LEE",
+  "audience": "broadcast",
+  "language": "en",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_broadcast_language_en_match_id_EPL-20261028-0052-BHA-LEE_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261028-0008-BHA-IPS",
+  "audience": "fan",
+  "language": "en",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_fan_language_en_match_id_EPL-20261028-0008-BHA-IPS_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261028-0008-BHA-IPS",
+  "audience": "broadcast",
+  "language": "en",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_broadcast_language_en_match_id_EPL-20261028-0008-BHA-IPS_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261027-2324-BHA-HUL",
+  "audience": "fan",
+  "language": "en",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_fan_language_en_match_id_EPL-20261027-2324-BHA-HUL_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261027-2324-BHA-HUL",
+  "audience": "broadcast",
+  "language": "en",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_broadcast_language_en_match_id_EPL-20261027-2324-BHA-HUL_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261027-2240-BHA-FUL",
+  "audience": "fan",
+  "language": "en",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_fan_language_en_match_id_EPL-20261027-2240-BHA-FUL_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261027-2240-BHA-FUL",
+  "audience": "broadcast",
+  "language": "en",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_broadcast_language_en_match_id_EPL-20261027-2240-BHA-FUL_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261027-2156-BHA-EVE",
+  "audience": "fan",
+  "language": "en",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_fan_language_en_match_id_EPL-20261027-2156-BHA-EVE_part_full_site_id_brighton"
+ },
+ {
+  "match_id": "EPL-20261027-2156-BHA-EVE",
+  "audience": "broadcast",
+  "language": "en",
+  "focus": "",
+  "part": "full",
+  "key": "analysis_recap_audience_broadcast_language_en_match_id_EPL-20261027-2156-BHA-EVE_part_full_site_id_brighton"
+ }
+]

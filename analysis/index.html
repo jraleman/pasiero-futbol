@@ -1,0 +1,1097 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="marks/mark.svg">
+<title data-brand="title">Analysis room</title>
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="common.css">
+<script src="brand.js"></script>
+<script src="static.js"></script>
+<style>
+/* ── the score bug ─────────────────────────────────────────────────────────── */
+.bug { display: grid; grid-template-columns: auto max-content minmax(0, 1fr) max-content; align-items: center; gap: 22px;
+       padding: 10px 20px; background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
+.brand { display: flex; align-items: center; gap: 12px; padding-right: 18px; border-right: 1px solid var(--line); height: 48px; }
+.brand img { width: 42px; height: 46px; object-fit: contain; display: block; }
+.brand span { font: 800 17px/1 var(--display); text-transform: var(--wordmark-case); letter-spacing: .04em; color: var(--ink-2); }
+.brand span b { display: block; color: var(--highlight); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+.score { display: flex; align-items: stretch; border-radius: 6px; overflow: hidden; }
+.score .club { display: flex; align-items: center; gap: 10px; padding: 4px 14px; background: var(--raise); min-width: 92px; }
+.score .club img, .score .club .crest-none { width: 38px; height: 38px; object-fit: contain; }
+.score .club .code { font: 800 26px/1 var(--display); letter-spacing: .03em; }
+.score .club small { display: block; font: 500 11px/1.2 var(--body); color: var(--muted); margin-top: 2px; white-space: nowrap; }
+.score .club .kit { display: block; height: 3px; border-radius: 2px; margin-top: 4px; }
+.score .goals { display: flex; align-items: center; gap: 10px; padding: 0 16px; font: 800 32px/1 var(--display); background: var(--brand); color: #fff; }
+.score .goals span { opacity: .55; font-weight: 600; }
+.matchinfo { min-width: 0; }
+.matchinfo .state { font-weight: 600; white-space: nowrap; display: flex; gap: 8px; align-items: center; }
+.matchinfo .state > span:not(.tag) { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.matchinfo .state .tag { flex: none; }   /* Demo data is never cut */
+.matchinfo .state .live { color: var(--off); }
+.matchinfo .meta { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.who { display: flex; align-items: center; gap: 10px; }
+.who select { background: var(--raise); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; max-width: 210px; }
+.who a.btn { border: 1px solid var(--line-2); border-radius: 6px; padding: 6px 10px; color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.who a.btn:hover { border-color: var(--accent); }
+.who .analyst { color: var(--ink-2); font-size: 13px; white-space: nowrap; }
+.who .analyst b { color: var(--ink); font-weight: 600; }
+.short { display: none; }
+
+/* Narrower than the whole bar (about 1900 px): the mark without its words, the clubs' codes
+   without their names (on hover), shorter labels. Narrower still, the controls on a row of their own. */
+@media (max-width: 1800px) {
+  .bug { gap: 16px; }
+  .brand span, .score .club small, .long { display: none; }
+  .short { display: inline; }
+  .score .club { min-width: 0; }
+}
+@media (max-width: 1400px) {
+  .bug { grid-template-columns: auto max-content minmax(0, 1fr); row-gap: 8px; }
+  .who { grid-column: 1 / -1; justify-content: flex-end; }
+}
+
+/* ── layout ────────────────────────────────────────────────────────────────── */
+.room { display: grid; grid-template-columns: minmax(0, 1fr) 390px; gap: 16px; padding: 16px 20px 28px; align-items: start; }
+.col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+section.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+.card > header { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.card > header h2 { margin: 0; font: 700 21px/1.1 var(--display); text-transform: uppercase; letter-spacing: .04em; }
+.card > header .sub { color: var(--muted); font-size: 13px; }
+.card > header .right { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 4px 10px; cursor: pointer; color: var(--ink-2); font-size: 13px; }
+.seg button + button { border-left: 1px solid var(--line-2); }
+.seg button[aria-pressed="true"] { background: var(--raise); color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); }
+.empty { color: var(--muted); padding: 10px 2px; }
+
+/* ── the game plan ─────────────────────────────────────────────────────────── */
+.plan-head { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.plan-head .title { font-weight: 600; font-size: 16px; }
+.plan-head .share { margin-left: auto; text-align: right; }
+.plan-head .share b { font: 700 28px/1 var(--display); }
+.plan-head .share span { display: block; font-size: 12px; color: var(--muted); }
+table.targets { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.targets th { text-align: left; font-weight: 500; color: var(--muted); font-size: 12px; padding: 4px 8px; border-bottom: 1px solid var(--line); }
+table.targets td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+table.targets tr:last-child td { border-bottom: 0; }
+table.targets .name { font-weight: 600; }
+table.targets .name .star { color: var(--accent); margin-right: 4px; }
+table.targets .name small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+table.targets .v { font-family: var(--mono); white-space: nowrap; }
+table.targets .v .chip { margin-left: 6px; }
+table.targets td.spark { width: 170px; }
+.spark svg { display: block; width: 170px; height: 30px; overflow: visible; }
+.spark .vline { fill: none; stroke: var(--ink-2); stroke-width: 1.5; }
+.spark .tline { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 3 3; }
+.spark .half { stroke: var(--line-2); stroke-width: 1; }
+.spark circle, .spark rect { cursor: default; }
+
+/* ── shape ─────────────────────────────────────────────────────────────────── */
+.shape { display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 14px; }
+.shape .side { display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+.shape .read { font: 800 40px/1 var(--display); }
+.shape .read small { display: block; font: 500 12px var(--body); color: var(--muted); margin-top: 4px; }
+.shape dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; }
+.shape dt { color: var(--muted); }
+.shape dd { margin: 0; font-family: var(--mono); text-align: right; }
+.shape label.check { display: flex; gap: 6px; align-items: center; color: var(--ink-2); font-size: 13px; cursor: pointer; }
+.shape .legend { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-2); }
+.shape .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -2px; margin-right: 6px; border: 1px solid rgba(0,0,0,.4); }
+.shape .legend i.ghost { background: none; border: 1.5px dashed var(--highlight); }
+
+/* ── team data ─────────────────────────────────────────────────────────────── */
+table.data { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.data th, table.data td { padding: 5px 8px; border-bottom: 1px solid var(--line); }
+table.data th { font-weight: 600; text-align: right; }
+table.data th:first-child, table.data td:first-child { text-align: left; color: var(--ink-2); font-weight: 400; }
+table.data td { text-align: right; font-family: var(--mono); }
+table.data th .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
+.data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 22px; }
+
+/* ── set pieces ────────────────────────────────────────────────────────────── */
+.sp { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 16px; }
+.sp .pitch svg .dot { cursor: pointer; }
+#sp .totals { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 10px; }
+#sp .totals div { background: var(--raise); border-radius: 6px; padding: 6px 8px; }
+#sp .totals b { display: block; font: 700 22px/1.1 var(--display); }
+#sp .totals span { font-size: 11.5px; color: var(--muted); }
+.sp .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--ink-2); margin-top: 6px; }
+.sp .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+.sp .legend i.hollow { background: none !important; border: 2px solid var(--ink-2); width: 8px; height: 8px; }
+table.mini { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.mini th { text-align: right; font-weight: 500; color: var(--muted); font-size: 12px; padding: 3px 6px; border-bottom: 1px solid var(--line); }
+table.mini td { text-align: right; padding: 5px 6px; border-bottom: 1px solid var(--line); font-family: var(--mono); }
+table.mini th:first-child, table.mini td:first-child { text-align: left; font-family: inherit; }
+table.mini tr[data-play] { cursor: pointer; }
+table.mini tr[data-play]:hover td { background: var(--raise); }
+
+/* ── running ───────────────────────────────────────────────────────────────── */
+table.run td.bars { width: 150px; }
+.bars svg { display: block; width: 150px; height: 22px; }
+.bars rect { fill: var(--ink-2); opacity: .55; }
+.bars rect.late { opacity: .9; }
+.bars line { stroke: var(--line-2); }
+table.run tr.flag td { background: color-mix(in srgb, var(--off) 10%, transparent); }
+table.run .num { font-family: var(--mono); }
+.run-head { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); margin-bottom: 8px; }
+.run-head b { font: 700 18px var(--display); color: var(--ink); margin-right: 4px; }
+
+/* ── the timeline ──────────────────────────────────────────────────────────── */
+.timeline svg { display: block; width: 100%; height: 200px; }
+.timeline .axis { stroke: var(--line-2); stroke-width: 1; }
+.timeline .grid { stroke: var(--line); stroke-width: 1; }
+.timeline text { fill: var(--muted); font: 11px var(--mono); }
+.timeline .mark { cursor: pointer; }
+.timeline .legend { display: flex; gap: 16px; font-size: 12px; color: var(--ink-2); flex-wrap: wrap; margin-top: 6px; }
+.timeline .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
+
+/* ── the match story (the narrator agent) ───────────────────────────────────── */
+.story-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; align-items: end; }
+.story-form label { display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; color: var(--muted); letter-spacing: .03em; }
+.story-form select { background: var(--raise); border: 1px solid var(--line); border-radius: 6px; padding: 5px 6px; font-size: 13px; color: var(--ink); min-width: 0; }
+.story-form .go { background: var(--accent); color: var(--on-accent); border: 0; border-radius: 6px; padding: 7px 12px; font-weight: 600; cursor: pointer; }
+.story-form .go:disabled { opacity: .6; cursor: progress; }
+.story-text { margin-top: 12px; font-size: 14.5px; line-height: 1.55; }
+.story-text p { margin: 0 0 8px; }
+.story-text.captions p:not(.by) { font: 600 14px/1.4 var(--display); letter-spacing: .02em; padding: 6px 10px; margin-bottom: 6px; border-left: 3px solid var(--highlight); background: var(--raise); border-radius: 0 6px 6px 0; }
+.story-text .by { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+.story-text .wait { color: var(--muted); }
+
+/* ── deviations ────────────────────────────────────────────────────────────── */
+.devs ol, .plays ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.dev { border: 1px solid var(--line); border-left: 3px solid var(--line-2); border-radius: 6px; background: var(--raise); }
+.dev.pending_review { border-left-color: var(--off); }
+.dev.pending_review.normal { border-left-color: var(--drift); }
+.dev > button { all: unset; display: grid; grid-template-columns: 50px 1fr; gap: 2px 8px; padding: 8px 10px; cursor: pointer; width: 100%; box-sizing: border-box; }
+.dev > button:focus-visible { outline: 2px solid var(--accent); }
+.dev .min { font: 500 15px var(--mono); }
+.dev .t { font-weight: 600; }
+.dev .v { grid-column: 2; color: var(--ink-2); font-size: 13px; font-family: var(--mono); }
+.dev .st { grid-column: 2; font-size: 12px; color: var(--muted); }
+.dev[aria-current="true"] { border-color: var(--accent); }
+.dev .body { padding: 0 10px 10px 68px; display: grid; gap: 8px; font-size: 14px; }
+.dev .body p { margin: 0; }
+.dev .check { color: var(--ink-2); }
+.dev textarea { width: 100%; min-height: 40px; resize: vertical; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+.dev .buttons { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.dev .buttons button { border: 0; border-radius: 6px; padding: 7px 12px; font-weight: 600; cursor: pointer; font-size: 13px; }
+.dev .flag { background: var(--accent); color: var(--on-accent); }
+.dev .expected { background: var(--panel); border: 1px solid var(--line-2) !important; }
+.dev .reopen { background: transparent; border: 1px solid var(--line-2) !important; }
+.dev kbd { font: 500 10.5px var(--mono); padding: 0 4px; border: 1px solid currentColor; border-radius: 3px; margin-left: 6px; opacity: .7; }
+.dev .outcome { font-weight: 600; font-size: 13px; }
+.dev .outcome.confirmed { color: var(--accent); }
+.dev .outcome.dismissed { color: var(--ink-2); }
+.dev .back { color: var(--on); font-size: 13px; }
+
+/* ── plays ─────────────────────────────────────────────────────────────────── */
+.plays .filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.plays .filters select { background: var(--raise); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; font-size: 13px; }
+.plays ol { max-height: 520px; overflow-y: auto; }
+.play > button { all: unset; display: grid; grid-template-columns: 44px 18px 1fr auto; gap: 2px 8px; align-items: baseline; padding: 7px 8px;
+                 border-radius: 6px; cursor: pointer; width: 100%; box-sizing: border-box; }
+.play > button:hover, .play > button:focus-visible { background: var(--raise); }
+.play .min { font: 500 14px var(--mono); }
+.play .g { font-size: 13px; }
+.play .k { font-weight: 600; }
+.play .team { font: 700 12px var(--display); letter-spacing: .04em; padding: 0 6px; border-radius: 3px; border: 1px solid currentColor; }
+.play .sum { grid-column: 3 / 5; color: var(--ink-2); font-size: 13px; line-height: 1.35; }
+
+/* ── the play viewer ───────────────────────────────────────────────────────── */
+#viewer { width: min(1180px, calc(100vw - 24px)); padding: 16px 18px; }
+#viewer .vhead { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+#viewer .vhead h3 { margin: 0; font: 800 28px var(--display); text-transform: uppercase; }
+#viewer .vhead .minute { font: 500 24px var(--mono); color: var(--ink-2); }
+#viewer .vhead .close { margin-left: auto; }
+#viewer .vhead button { border: 1px solid var(--line-2); background: var(--raise); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+#viewer .stage { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; }
+#viewer .replay { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+#viewer .replay button { border: 1px solid var(--line-2); background: var(--raise); border-radius: 6px; padding: 5px 10px; cursor: pointer; min-width: 36px; }
+#viewer .replay button[aria-pressed="true"] { border-color: var(--accent); }
+#viewer .replay input[type=range] { flex: 1; min-width: 160px; accent-color: var(--accent); }
+#viewer .replay .t { font: 500 13px var(--mono); width: 66px; text-align: right; }
+#viewer .camera { background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 16 / 9; position: relative; }
+#viewer .camera img { width: 100%; height: 100%; object-fit: contain; display: block; }
+#viewer .camera .off { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 13px; padding: 12px; text-align: center; }
+#viewer .camtabs { display: flex; gap: 4px; margin-bottom: 6px; }
+#viewer .camtabs button { flex: 1; border: 1px solid var(--line-2); background: transparent; border-radius: 6px; padding: 4px; cursor: pointer; font-size: 13px; color: var(--ink-2); }
+#viewer .camtabs button[aria-pressed="true"] { color: var(--ink); border-color: var(--accent); }
+#viewer .facts { margin-top: 12px; display: grid; gap: 6px; font-size: 14px; }
+#viewer .facts p { margin: 0; }
+#viewer .facts .what { font-size: 16px; font-weight: 500; }
+#viewer .facts dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 0; color: var(--ink-2); }
+#viewer .facts dd { margin: 0; font-family: var(--mono); }
+#viewer .keys { font-size: 12px; color: var(--muted); margin-top: 8px; }
+#viewer .keys kbd { font: 500 11px var(--mono); padding: 0 4px; border: 1px solid var(--line-2); border-radius: 3px; }
+
+@media (max-width: 1240px) {
+  .room { grid-template-columns: 1fr; }
+  .plays ol { max-height: none; }
+}
+@media (max-width: 900px) {
+  .sp { grid-template-columns: 1fr; }
+  #sp .totals { grid-template-columns: repeat(3, 1fr); }
+  table.run td.bars { display: none; }
+  .bug { grid-template-columns: 1fr; gap: 10px; position: static; }
+  .brand { display: none; }
+  .who { flex-wrap: wrap; }
+  .room { padding: 12px 16px 24px; }
+  .shape, #viewer .stage, .data-grid { grid-template-columns: 1fr; }
+  table.targets td.spark { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<header class="bug">
+  <div class="brand"><picture><source srcset="marks/mark.svg" media="(prefers-color-scheme: light)"><img class="mark" src="marks/mark-white.svg" alt=""></picture><span data-brand="wordmark"></span></div>
+  <div class="score" id="score" aria-live="polite"></div>
+  <div class="matchinfo"><div class="state" id="state"></div><div class="meta" id="meta"></div></div>
+  <div class="who">
+    <select id="match" aria-label="Match"></select>
+    <a class="btn" id="plan-link">Game plan</a>
+    <a class="btn" id="half-link" target="_blank" rel="opener"><span class="long">Half-time report</span><span class="short">Half time</span></a>
+    <a class="btn" id="full-link" target="_blank" rel="opener"><span class="long">Match report</span><span class="short">Full time</span></a>
+    <a class="btn" id="season-link" href="season.html">Season</a>
+    <span class="analyst" id="analyst"></span>
+  </div>
+</header>
+
+<div class="room">
+  <div class="col">
+    <section class="card" id="plan-card">
+      <header><h2>Game plan</h2><span class="sub" id="plan-sub"></span>
+        <div class="right"><a class="btn tag" id="plan-edit" style="text-decoration:none">Edit the plan</a></div></header>
+      <div id="plan"></div>
+    </section>
+
+    <section class="card">
+      <header><h2 title="Average positions, attacking right">Shape</h2>
+        <div class="right">
+          <span class="seg" id="seg-team" role="group" aria-label="Team"></span>
+          <span class="seg" id="seg-phase" role="group" aria-label="Phase"></span>
+          <span class="seg" id="seg-scope" role="group" aria-label="Part of the match"></span>
+        </div></header>
+      <div class="shape">
+        <div class="pitch"><svg id="shape-pitch" viewBox="-4 -5 113 77" role="img" aria-label="Average positions"></svg></div>
+        <div class="side" id="shape-side"></div>
+      </div>
+    </section>
+
+    <section class="card timeline">
+      <header><h2 title="xG per 5 minutes, key plays and deviations from the plan">Match timeline</h2></header>
+      <svg id="timeline" preserveAspectRatio="none" role="img" aria-label="Match timeline"></svg>
+      <div class="legend" id="timeline-legend"></div>
+    </section>
+
+    <section class="card">
+      <header><h2>Team data</h2><span class="sub" id="data-sub"></span></header>
+      <div id="data"></div>
+    </section>
+
+    <section class="card" id="set-pieces">
+      <header><h2 title="Corners, free kicks within 35 m and long throws into the box">Set pieces</h2>
+        <div class="right"><span class="seg" id="seg-sp" role="group" aria-label="Team"></span></div></header>
+      <div id="sp"></div>
+    </section>
+
+    <section class="card" id="running">
+      <header><h2 id="run-title" title="Every player, from the tracking">Running</h2>
+        <div class="right"><span class="seg" id="seg-run" role="group" aria-label="Team"></span></div></header>
+      <div id="run"></div>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="card" id="story-card">
+      <header><h2 title="The narrator agent: why the moments mattered">Match story</h2></header>
+      <div class="story-form">
+        <label>For<select id="s-audience">
+          <option value="fan">A fan</option><option value="coach">The coaching staff</option>
+          <option value="analyst">An analyst</option><option value="broadcast">Broadcast captions</option></select></label>
+        <label>Language<select id="s-language"></select></label>
+        <label>Part<select id="s-part">
+          <option value="live">So far</option><option value="half">First half</option><option value="full">Whole match</option></select></label>
+        <label>Follow<select id="s-focus"></select></label>
+        <button class="go" id="s-go">Tell the story</button>
+      </div>
+      <div class="story-text" id="story" aria-live="polite"></div>
+    </section>
+
+    <section class="card devs">
+      <header><h2 title="A deviation opens when the last 15 minutes of a target are off the plan: flag it for the bench (F), or set it aside as expected (E). J/K: next/previous; R: reopen.">Deviations</h2>
+        <div class="right"><span class="seg" role="group" aria-label="Which deviations">
+          <button id="dev-pending" aria-pressed="true"></button><button id="dev-all" aria-pressed="false"></button></span></div></header>
+      <ol id="devs"></ol>
+    </section>
+
+    <section class="card plays">
+      <header><h2>Technical plays</h2><span class="sub" id="plays-sub"></span></header>
+      <div class="filters">
+        <select id="f-type" aria-label="Type"></select>
+        <select id="f-team" aria-label="Team"></select>
+        <span class="seg" role="group" aria-label="Which plays"><button id="f-key" aria-pressed="true">Key plays</button><button id="f-every" aria-pressed="false">Every play</button></span>
+      </div>
+      <ol id="plays"></ol>
+    </section>
+  </div>
+</div>
+
+<dialog id="viewer" aria-labelledby="v-title">
+  <div class="vhead">
+    <h3 id="v-title"></h3><span class="minute" id="v-minute"></span><span id="v-tags"></span>
+    <span class="close"><button id="v-prev" aria-label="Previous play">◀ Prev</button> <button id="v-next" aria-label="Next play">Next ▶</button> <button id="v-close">Close</button></span>
+  </div>
+  <div class="stage">
+    <div>
+      <div class="pitch"><svg id="v-pitch" viewBox="-4 -5 113 77" role="img" aria-label="Replay"></svg></div>
+      <div class="replay">
+        <button id="v-play" aria-label="Play">▶</button><button id="v-back" aria-label="Back one frame">◀︎</button><button id="v-fwd" aria-label="Forward one frame">▶︎</button>
+        <input type="range" id="v-scrub" step="0.01" aria-label="Replay position"><span class="t" id="v-t"></span>
+        <button data-speed="0.25">0.25×</button><button data-speed="0.5">0.5×</button><button data-speed="1">1×</button>
+        <button id="v-key">Key moment</button>
+      </div>
+    </div>
+    <div>
+      <div class="camtabs" id="v-camtabs"><button data-view="frame">Keyframe</button><button data-view="live">Live camera</button></div>
+      <div class="camera" id="v-camera"><img id="v-cam" alt=""></div>
+      <div class="facts" id="v-facts"></div>
+    </div>
+  </div>
+</dialog>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script src="common.js"></script>
+<script>
+"use strict";
+const state = {
+  matches: [], matchId: null, site: null, data: null, videoUrl: null,
+  devFilter: "pending", selectedDev: null, notes: {},
+  team: "ours", phase: "out_of_possession", scope: "match", network: false,
+  playType: "", playTeam: "", keyOnly: true, spTeam: "ours", runTeam: "ours",
+  play: null, replay: { t: 0, playing: false, speed: 0.5, last: 0 }, view: "frame",
+};
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let link = (() => {
+  const parts = decodeURIComponent(location.hash.slice(1)).split("/");
+  return parts.length >= 2 && parts.every(Boolean) ? parts : null;
+})();
+
+// ── loading ──────────────────────────────────────────────────────────────────
+async function refresh() {
+  let list;
+  try { list = await api("/api/v1/analysis/matches"); } catch { return; }
+  state.matches = list.matches || [];
+  state.videoUrl = list.video_url || `${location.protocol}//${location.hostname}:1984`;
+  if (link) {
+    const [site, matchId] = link;
+    if (state.matches.some(m => m.match_id === matchId && m.site_id === site)) { state.matchId = matchId; state.devFilter = "all"; }
+  }
+  if (!state.matchId || !state.matches.some(m => m.match_id === state.matchId)) {
+    // The match being played, else the club's latest (not a scouting match, nor the dataset's), else any
+    const own = m => !m.scouting && (!league?.club || m[m.team].code === league.club);
+    const live = state.matches.find(m => m.status === "live" || m.status === "half_time") || state.matches.find(own) || state.matches[0];
+    state.matchId = live?.match_id || null;
+  }
+  const m = state.matches.find(x => x.match_id === state.matchId);
+  state.site = m?.site_id || null;
+  if (!m) { state.data = null; render(); return; }
+  try {
+    state.data = await api(`/api/v1/analysis/match?match_id=${encodeURIComponent(state.matchId)}&site_id=${encodeURIComponent(state.site)}`);
+  } catch { return; }
+  render();
+  // A link from an email or the dashboard's feed: #<site>/<match>/<deviation or play>
+  if (link) {
+    const ref = link[2];
+    link = null;
+    if (ref && ref.startsWith("PL-")) openPlay(ref);
+    else if (ref) { state.selectedDev = ref; renderDevs(); document.querySelector(`[data-dev="${CSS.escape(ref)}"]`)?.scrollIntoView({ block: "center" }); }
+  }
+}
+
+// ── rendering ────────────────────────────────────────────────────────────────
+const ours = () => state.data.match.team;
+const theirs = () => (ours() === "home" ? "away" : "home");
+function sideOf(which) { return which === "ours" ? ours() : theirs(); }
+function render() {
+  renderBug();
+  if (!state.data) {
+    for (const id of ["plan", "shape-side", "data", "devs", "plays", "sp", "run", "story"]) $(id).innerHTML = `<p class="empty">No match yet.</p>`;
+    return;
+  }
+  renderPlan();
+  renderShape();
+  renderTimeline();
+  renderData();
+  renderSetPieces();
+  renderRunning();
+  renderDevs();
+  renderPlays();
+  renderStory();
+}
+
+function renderBug() {
+  $("match").innerHTML = state.matches.map(x => {
+    const opp = x.opponent.code, venue = x.at_home ? "v" : "@";
+    const res = x.result ? ` ${x.result} ${x.score[x.team]}–${x.score[x.team === "home" ? "away" : "home"]}` : x.status === "scheduled" ? "" : ` · ${MATCH_STATE[x.status]}`;
+    return `<option value="${esc(x.match_id)}" ${x.match_id === state.matchId ? "selected" : ""}>${esc(x.kickoff.slice(5, 10))} ${venue} ${esc(opp)}${esc(res)}${x.pending ? ` · ${x.pending} to call` : ""}</option>`;
+  }).join("");
+  $("analyst").innerHTML = `<span class="long">Analyst: </span><b>${esc(auth.name)}</b> <a href="#" id="who">change</a>`;
+  $("who").onclick = e => { e.preventDefault(); signIn(); };
+  const m = state.data?.match;
+  for (const id of ["plan-link", "half-link", "full-link", "plan-edit"]) $(id).hidden = !m;
+  if (!m) { $("score").innerHTML = ""; $("state").textContent = ""; $("meta").textContent = ""; return; }
+  const hash = `#${[m.site_id, m.match_id].map(encodeURIComponent).join("/")}`;
+  $("plan-link").href = $("plan-edit").href = `plan.html${hash}`;
+  $("half-link").href = `report.html?part=half${hash}`;
+  $("full-link").href = `report.html?part=full${hash}`;
+  const k = kits(m.home.code, m.away.code);
+  const side = (team, colour) => `<div class="club" title="${esc(team.name)}">${crestImg(team.code)}<div><span class="code">${esc(team.code)}</span>` +
+    `<small>${esc(team.name)}</small><i class="kit" style="background:${colour}"></i></div></div>`;
+  $("score").innerHTML = side(m.home, k.home) + `<div class="goals">${m.score.home}<span>–</span>${m.score.away}</div>` + side(m.away, k.away);
+  const live = m.status === "live";
+  $("state").innerHTML = `${live ? '<span class="live">●</span>' : ""}<span>${esc(MATCH_STATE[m.status])}${live && m.minute ? ` · ${esc(m.minute)}'` : ""}` +
+    `${live && PERIOD[m.period] ? ` · ${esc(PERIOD[m.period])}` : ""}</span>` +
+    (m.synthetic ? `<span class="tag demo">Demo data</span>` : m.scouting ? `<span class="tag real">Scouting footage</span>`
+      : `<span class="tag real">Real tracking data</span>`);
+  $("meta").textContent = $("meta").title = [m.competition, m.matchday ? `Matchday ${m.matchday}` : null, m.venue, when(m.kickoff)].filter(Boolean).join(" · ");
+  document.title = `${scoreText(m)} · ${BRAND.name}`;
+}
+
+// The game plan, target by target
+function renderPlan() {
+  const a = state.data.adherence;
+  const m = state.data.match;
+  if (!a.plan) {
+    $("plan-sub").textContent = "";
+    $("plan").innerHTML = `<p class="empty">No game plan. <a href="plan.html#${esc(m.site_id)}/${esc(m.match_id)}">Write one</a></p>`;
+    return;
+  }
+  $("plan-sub").innerHTML = a.plan.inherited ? `<span class="tag">Club default</span>` : `by ${esc(a.plan.updated_by)}`;
+  const share = a.on_plan_share;
+  const shapeRow = phase => {
+    const t = a.targets.find(x => x.metric === `formation_${phase}`);
+    return t ? `<span class="tag">${esc(PHASES[phase])}: plan <b>${esc(t.target)}</b> · read <b>${esc(t.match.text)}</b></span>` : "";
+  };
+  const halves = state.data.timeline.some(w => w.period === 2);
+  const rows = a.targets.map(t => `
+    <tr>
+      <td class="name" title="${esc(t.description)}">${t.key ? '<span class="star" title="Key instruction">★</span>' : ""}${esc(t.name)}</td>
+      <td class="v">${esc(t.target)}</td>
+      <td class="v">${esc(t.match.text)}${chip(t.match.status)}</td>
+      <td class="v">${esc(t.last_15.text)}${chip(t.last_15.status)}</td>
+      <td class="spark" data-metric="${esc(t.metric)}"></td>
+    </tr>`).join("");
+  $("plan").innerHTML = `
+    <div class="plan-head">
+      <span class="title">${esc(a.plan.title || "Game plan")}</span>${shapeRow("in_possession")}${shapeRow("out_of_possession")}
+      <span class="share"><b>${share == null ? "–" : Math.round(share * 100) + "%"}</b><span>of targets on plan so far</span></span>
+    </div>
+    <table class="targets">
+      <thead><tr><th>Target</th><th>Plan</th><th>Match so far</th><th>Last 15'</th><th>Every 5 minutes${halves ? " (1st | 2nd half)" : ""}</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  for (const cell of $("plan").querySelectorAll("td.spark")) {
+    const t = a.targets.find(x => x.metric === cell.dataset.metric);
+    cell.innerHTML = spark(t);
+  }
+  bindTips($("plan"));
+}
+
+// One target over the match: its value every 5 minutes, the plan's line, each window's status
+function spark(t) {
+  const W = 170, H = 30, ws = t.windows;
+  if (!ws.length) return "";
+  const x = i => 4 + (W - 8) * (ws.length === 1 ? 0.5 : i / (ws.length - 1));
+  const colour = s => ({ on_plan: "var(--on)", drifting: "var(--drift)", off_plan: "var(--off)" })[s] || "var(--nodata)";
+  const tip = w => `${esc(w.label)} – ${esc(STATUS[w.status].label)}${w.value != null ? ` · <b>${esc(String(w.value))}${t.unit === "%" ? "%" : t.unit ? " " + esc(t.unit) : ""}</b>` : ""}${w.final ? "" : " (being played)"}`;
+  const split = ws.findIndex(w => w.period === 2);
+  let out = `<svg viewBox="0 0 ${W} ${H}" aria-label="${esc(t.name)} every 5 minutes">`;
+  if (split > 0) out += `<line class="half" x1="${(x(split - 1) + x(split)) / 2}" x2="${(x(split - 1) + x(split)) / 2}" y1="0" y2="${H}"/>`;
+  if (t.metric.startsWith("formation_")) {
+    ws.forEach((w, i) => { out += `<rect x="${x(i) - 3.5}" y="${H / 2 - 5}" width="7" height="10" rx="2" fill="${colour(w.status)}" data-tip="${esc(tip(w))}"/>`; });
+    return out + "</svg>";
+  }
+  const vals = ws.map(w => w.value).filter(v => v != null);
+  if (!vals.length) return out + "</svg>";
+  let lo = Math.min(...vals, t.value), hi = Math.max(...vals, t.value);
+  if (hi - lo < 1e-6) { lo -= 1; hi += 1; }
+  const y = v => H - 4 - (H - 8) * (v - lo) / (hi - lo);
+  out += `<line class="tline" x1="0" x2="${W}" y1="${y(t.value)}" y2="${y(t.value)}"/>`;
+  let d = "";
+  ws.forEach((w, i) => { if (w.value != null) d += `${d ? "L" : "M"}${x(i).toFixed(1)} ${y(w.value).toFixed(1)}`; });
+  out += `<path class="vline" d="${d}"/>`;
+  ws.forEach((w, i) => {
+    if (w.value == null) return;
+    out += `<circle cx="${x(i)}" cy="${y(w.value)}" r="3" fill="${colour(w.status)}" stroke="var(--panel)" stroke-width="1"/>` +
+           `<rect x="${x(i) - 6}" y="0" width="12" height="${H}" fill="transparent" data-tip="${esc(tip(w))}"/>`;
+  });
+  return out + "</svg>";
+}
+
+// Hover tooltips on anything with data-tip
+function bindTips(root) {
+  const tipEl = $("tip");
+  for (const node of root.querySelectorAll("[data-tip]")) {
+    node.addEventListener("pointerenter", () => { tipEl.innerHTML = node.dataset.tip; tipEl.style.display = "block"; });
+    node.addEventListener("pointermove", e => {
+      const r = tipEl.getBoundingClientRect();
+      tipEl.style.left = Math.min(innerWidth - r.width - 8, e.clientX + 12) + "px";
+      tipEl.style.top = Math.max(8, e.clientY - r.height - 10) + "px";
+    });
+    node.addEventListener("pointerleave", () => { tipEl.style.display = "none"; });
+  }
+}
+
+// ── shape ────────────────────────────────────────────────────────────────────
+function seg(id, options, current, set) {
+  $(id).innerHTML = Object.entries(options).map(([k, v]) => `<button data-k="${esc(k)}" aria-pressed="${k === current}">${esc(v)}</button>`).join("");
+  for (const b of $(id).querySelectorAll("button")) b.onclick = () => { set(b.dataset.k); renderShape(); renderData(); };
+}
+function renderShape() {
+  const d = state.data, m = d.match;
+  seg("seg-team", { ours: m.us.code, theirs: m.opponent.code }, state.team, v => state.team = v);
+  seg("seg-phase", { in_possession: "In possession", out_of_possession: "Out of possession" }, state.phase, v => state.phase = v);
+  seg("seg-scope", SCOPES, state.scope, v => state.scope = v);
+  const side = sideOf(state.team);
+  const scope = d.shapes[state.scope]?.[side];
+  const svg = $("shape-pitch");
+  svg.innerHTML = "";
+  pitchLines(svg);
+  const dir = el("text", { class: "dir", x: 105, y: -1.6, "text-anchor": "end" }, svg);
+  dir.textContent = `${m[side].code} attack →`;
+  const k = kits(m.home.code, m.away.code);
+  const fill = side === "home" ? k.home : k.away, ink = side === "home" ? k.homeInk : k.awayInk;
+  const phase = scope?.[state.phase];
+  const stats = d.stats[state.scope]?.[side];
+  if (!phase || !phase.positions.length) {
+    $("shape-side").innerHTML = `<p class="empty">Not enough yet.</p>`;
+    return;
+  }
+  const pos = phase.positions;
+  const planned = state.team === "ours" ? d.adherence.plan?.formation?.[state.phase] : null;
+  // The plan's shape, drawn over the team's own depth and width, so the eye can compare
+  if (planned && FORMATIONS[planned]) {
+    const xs = pos.map(p => p[1]), ys = pos.map(p => p[2]);
+    const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+    for (const [dd, w] of FORMATIONS[planned]) el("circle", { class: "ghost", cx: x0 + dd * (x1 - x0), cy: y0 + w * (y1 - y0), r: 2.3 }, svg);
+  }
+  // The pass network: who passed to whom most, in possession
+  if (state.network && state.phase === "in_possession") {
+    const at = new Map(scope.in_possession.positions.map(p => [p[0], p]));
+    const links = scope.network.filter(([a, b]) => at.has(a) && at.has(b)).slice(0, 18);
+    const top = links[0]?.[2] || 1;
+    for (const [a, b, n] of links) {
+      const p = at.get(a), q = at.get(b);
+      el("line", { class: "link", x1: p[1], y1: p[2], x2: q[1], y2: q[2], "stroke-width": (0.25 + 1.1 * n / top).toFixed(2),
+                   opacity: (0.25 + 0.6 * n / top).toFixed(2) }, svg);
+    }
+  }
+  if (stats?.line_height_m != null && state.phase === "out_of_possession")
+    el("line", { class: "linemark", x1: stats.line_height_m, x2: stats.line_height_m, y1: 0, y2: 68 }, svg);
+  for (const [n, x, y] of pos) {
+    const g = el("g", { class: "player", transform: `translate(${x} ${y})` }, svg);
+    el("circle", { class: "disc", r: 1.9, fill }, g);
+    el("text", { fill: ink }, g).textContent = n;
+  }
+  const read = phase.formation || "–";
+  const metrics = state.phase === "out_of_possession"
+    ? [["Line height", stats?.line_height_m, "m"], ["Team length", stats?.length_m, "m"]]
+    : [["Width", stats?.width_m, "m"], ["Possession", stats?.possession_pct, "%"]];
+  $("shape-side").innerHTML = `
+    <div class="read" title="The shape the device reads, ${esc(PHASES[state.phase].toLowerCase())}, ${esc(SCOPES[state.scope].toLowerCase())}">${esc(read)}</div>
+    ${planned ? `<div>${chip(read === planned ? "on_plan" : "off_plan")} plan: <b>${esc(planned)}</b></div>` : ""}
+    <dl>${metrics.map(([k, v, u]) => `<dt>${esc(k)}</dt><dd>${v == null ? "–" : esc(String(v)) + (u === "%" ? "%" : " " + u)}</dd>`).join("")}</dl>
+    ${state.phase === "in_possession" ? `<label class="check"><input type="checkbox" id="network" ${state.network ? "checked" : ""}> Pass network</label>` : ""}
+    <div class="legend">
+      <span title="Average position, by shirt number"><i style="background:${fill}"></i>${esc(m[side].code)}</span>
+      ${planned ? `<span title="The plan's ${esc(planned)}, at the team's depth and width"><i class="ghost"></i>Plan</span>` : ""}
+      ${state.phase === "out_of_possession" ? `<span style="color:var(--highlight)">┆ Defensive line</span>` : ""}
+    </div>`;
+  if ($("network")) $("network").onchange = e => { state.network = e.target.checked; renderShape(); };
+}
+
+// ── the timeline: xG per window (us up, them down), key plays and deviations ──
+const minuteX = (period, s) => (period === 1 ? 0 : 50) + Math.min(s / 60, 49.5);
+function renderTimeline() {
+  const d = state.data, m = d.match;
+  const svg = $("timeline");
+  const W = 1000, H = 200, top = 16, mid = 92, bottom = 168;
+  const x = v => 30 + (W - 40) * v / 100;
+  const us = ours(), them = theirs();
+  const max = Math.max(0.6, ...d.timeline.flatMap(w => [w[us].xg, w[them].xg]));
+  const h = v => (mid - top) * v / max;
+  let out = "";
+  for (const v of [max / 2, max]) {
+    out += `<line class="grid" x1="${x(0)}" x2="${x(100)}" y1="${mid - h(v)}" y2="${mid - h(v)}"/><line class="grid" x1="${x(0)}" x2="${x(100)}" y1="${mid + h(v) * 0.8}" y2="${mid + h(v) * 0.8}"/>`;
+    out += `<text x="${x(0) - 4}" y="${mid - h(v) + 4}" text-anchor="end">${v.toFixed(1)}</text>`;
+  }
+  for (const w of d.timeline) {
+    // A window only just started is narrower than the gaps between them
+    const x0 = x(minuteX(w.period, w.start_s)) + 1, x1 = Math.max(x0, x(minuteX(w.period, Math.min(w.end_s, w.start_s + 300))) - 1);
+    const a = w[us].xg, b = w[them].xg;
+    const tip = `${esc(w.label)}${w.final ? "" : " (being played)"}<br><span class="sw" style="background:var(--us)"></span>${esc(m.us.code)} xG <b>${a.toFixed(2)}</b>, ${w[us].shots} shots` +
+                `<br><span class="sw" style="background:var(--them)"></span>${esc(m.opponent.code)} xG <b>${b.toFixed(2)}</b>, ${w[them].shots} shots`;
+    if (a > 0) out += `<rect x="${x0}" y="${mid - h(a) - 1}" width="${x1 - x0}" height="${h(a)}" rx="2" fill="var(--us)"/>`;
+    if (b > 0) out += `<rect x="${x0}" y="${mid + 1}" width="${x1 - x0}" height="${h(b) * 0.8}" rx="2" fill="var(--them)"/>`;
+    out += `<rect x="${x0}" y="${top}" width="${x1 - x0}" height="${bottom - top}" fill="transparent" data-tip="${esc(tip)}"/>`;
+  }
+  out += `<line class="axis" x1="${x(0)}" x2="${x(49.5)}" y1="${mid}" y2="${mid}"/><line class="axis" x1="${x(50)}" x2="${x(99.5)}" y1="${mid}" y2="${mid}"/>`;
+  for (const [v, label] of [[0, "1'"], [15, "15'"], [30, "30'"], [45, "45'"], [50, "46'"], [65, "60'"], [80, "75'"], [95, "90'"]]) {
+    out += `<text x="${x(v)}" y="${bottom + 26}" text-anchor="middle">${label}</text>`;
+  }
+  // Key plays: a glyph per type, in the team's colour; goals on top
+  for (const p of d.plays.filter(p => p.key)) {
+    const cx = x(minuteX(p.period, p.match_time_s));
+    const colour = p.side === us ? "var(--us)" : "var(--them)";
+    const cy = p.type === "goal" ? (p.side === us ? top + 2 : bottom - 22) : bottom - 4;
+    out += `<g class="mark" data-play="${esc(p.play_id)}" data-tip="${esc(`${p.minute}' ${GLYPHS[p.type]} ${TYPE_NAMES[p.type]} · ${p.team}<br>${p.summary}`)}">` +
+      `<text x="${cx}" y="${cy}" text-anchor="middle" style="fill:${colour};font-size:${p.type === "goal" ? 15 : 12}px">${GLYPHS[p.type]}</text>` +
+      `<rect x="${cx - 7}" y="${cy - 13}" width="14" height="16" fill="transparent"/></g>`;
+  }
+  // Deviations: a flag where each opened, a bar to where it was back on plan
+  d.deviations.forEach((dv, i) => {
+    const x0 = x(minuteX(dv.period, dv.match_time_s));
+    const closed = dv.back_on_plan ? closedX(dv) : null;
+    const y = bottom + 6 + (i % 2) * 5;
+    const colour = dv.status === "dismissed" ? "var(--nodata)" : dv.priority === "high" ? "var(--off)" : "var(--drift)";
+    out += `<g class="mark" data-dev="${esc(dv.deviation_id)}" data-tip="${esc(`${dv.minute}' ⚑ ${dv.title}<br>${dv.value} · plan ${dv.target}${dv.back_on_plan ? `<br>Back on plan at ${dv.back_on_plan.minute}'` : ""}`)}">` +
+      `<line x1="${x0}" x2="${closed ? x(closed) : x0 + 6}" y1="${y}" y2="${y}" stroke="${colour}" stroke-width="3" stroke-linecap="round"/>` +
+      `<rect x="${x0 - 6}" y="${y - 6}" width="${Math.max(12, (closed ? x(closed) : x0 + 6) - x0 + 12)}" height="12" fill="transparent"/></g>`;
+  });
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.innerHTML = out;
+  bindTips(svg);
+  for (const g of svg.querySelectorAll("[data-play]")) g.onclick = () => openPlay(g.dataset.play);
+  for (const g of svg.querySelectorAll("[data-dev]")) g.onclick = () => { state.devFilter = "all"; state.selectedDev = g.dataset.dev; renderDevs(); };
+  $("timeline-legend").innerHTML = `<span><i style="background:var(--us)"></i>${esc(m.us.code)} xG</span><span><i style="background:var(--them)"></i>${esc(m.opponent.code)} xG</span>` +
+    Object.entries(GLYPHS).map(([k, g]) => `<span>${g} ${esc(TYPE_NAMES[k])}</span>`).join("") +
+    `<span><i style="background:var(--off)"></i>Deviation (key target)</span><span><i style="background:var(--drift)"></i>Deviation</span>`;
+}
+const closedX = dv => minuteX(dv.back_on_plan.period, dv.back_on_plan.match_time_s);
+
+// ── team data ────────────────────────────────────────────────────────────────
+function renderData() {
+  const d = state.data, m = d.match;
+  const s = d.stats[state.scope];
+  $("data-sub").textContent = SCOPES[state.scope];
+  if (!s) { $("data").innerHTML = `<p class="empty">Nothing measured yet.</p>`; return; }
+  const a = s[ours()], b = s[theirs()];
+  const pct = v => v == null ? "–" : `${Math.round(v)}%`;
+  const num = (v, dgt = 1) => v == null ? "–" : Number(v).toFixed(dgt);
+  const rows1 = [
+    ["Possession", pct(a.possession_pct), pct(b.possession_pct)],
+    ["Passes completed", `${a.passes_completed}/${a.passes}`, `${b.passes_completed}/${b.passes}`],
+    ["Pass completion", pct(a.pass_accuracy_pct), pct(b.pass_accuracy_pct)],
+    ["Pass length · difficulty (0–100)", passes(a), passes(b)],
+    ["Hard passes completed", hard(a), hard(b)],
+    ["Press intensity (PPDA)", num(a.ppda), num(b.ppda)],
+    ["Field tilt", pct(a.field_tilt_pct), pct(b.field_tilt_pct)],
+    ["Shots (on target)", `${a.shots} (${a.shots_on_target})`, `${b.shots} (${b.shots_on_target})`],
+    ["xG", num(a.xg, 2), num(b.xg, 2)],
+    ["Final-third entries", a.final_third_entries, b.final_third_entries],
+    ["… left · centre · right", lanes(a), lanes(b)],
+  ];
+  const rows2 = [
+    ["Box entries", a.box_entries, b.box_entries],
+    ["High regains", a.regains_high, b.regains_high],
+    ["Counter-press regains", pct(a.counterpress_pct), pct(b.counterpress_pct)],
+    ["Turnovers", a.turnovers, b.turnovers],
+    ["Corners · free kicks", `${a.corners} · ${a.free_kicks}`, `${b.corners} · ${b.free_kicks}`],
+    ["Goal kicks short", `${a.goal_kicks_short}/${a.goal_kicks}`, `${b.goal_kicks_short}/${b.goal_kicks}`],
+    ["Defensive line height", num(a.line_height_m) + " m", num(b.line_height_m) + " m"],
+    ["Width in possession", num(a.width_m) + " m", num(b.width_m) + " m"],
+    ["Team length out of possession", num(a.length_m) + " m", num(b.length_m) + " m"],
+    ["Pass speed · fastest ball", speeds(a), speeds(b)],
+    ["Fastest shot", kmh(a.shot_speed_max_kmh), kmh(b.shot_speed_max_kmh)],
+  ];
+  const head = `<tr><th></th><th><span class="sw" style="background:var(--us)"></span>${esc(m.us.code)}</th><th><span class="sw" style="background:var(--them)"></span>${esc(m.opponent.code)}</th></tr>`;
+  const table = rows => `<table class="data">${head}${rows.map(([k, x, y]) => `<tr><td>${esc(k)}</td><td>${esc(String(x))}</td><td>${esc(String(y))}</td></tr>`).join("")}</table>`;
+  $("data").innerHTML = `<div class="data-grid">${table(rows1)}${table(rows2)}</div>`;
+}
+// A player's milestones in the match: his first time over 30 km/h, 5 and 10 km covered
+const milestones = p => (p.milestones || []).map(m => ` <span class="tag mile" data-tip="${esc(m.text)}">` +
+  `${m.kind === "top_speed" ? `⚡ ${Math.round(m.kmh)} km/h` : `${m.km} km`}</span>`).join("");
+// Pass quality and ball speed (a device that doesn't measure them leaves them out: "–")
+const kmh = v => v == null ? "–" : `${Number(v).toFixed(0)} km/h`;
+const passes = t => t.pass_length_m == null ? "–" : `${t.pass_length_m.toFixed(1)} m · ${t.pass_difficulty}`;
+const hard = t => t.passes_hard == null ? "–" : `${t.passes_hard_completed}/${t.passes_hard}` + (t.passes_hard_pct == null ? "" : ` (${t.passes_hard_pct}%)`);
+const speeds = t => t.pass_speed_kmh == null ? "–" : `${kmh(t.pass_speed_kmh)} · ${kmh(t.ball_speed_max_kmh)}`;
+const lanes = t => ["left", "centre", "right"].map(k => t.entries_pct[k] == null ? "–" : `${t.entries_pct[k]}%`).join(" · ");
+
+// ── set pieces: where each delivery went, who won the first contact, what came of it ──
+const SP_COLOURS = { goal: "var(--highlight)", shot: "var(--us)", cleared: "var(--nodata)", retained: "var(--ink-2)" };
+function renderSetPieces() {
+  const d = state.data, m = d.match, sp = d.set_pieces;
+  seg("seg-sp", { ours: m.us.code, theirs: m.opponent.code }, state.spTeam, v => { state.spTeam = v; renderSetPieces(); });
+  const side = sideOf(state.spTeam), team = sp.teams[side];
+  const rows = sp.set_pieces.filter(p => p.side === side);
+  if (!rows.length) { $("sp").innerHTML = `<p class="empty">No set pieces into the box for ${esc(team.code)} yet.</p>`; return; }
+  const totals = [["Deliveries", team.deliveries], ["First contact", team.first_contact_pct == null ? "–" : `${team.first_contact_pct}%`],
+                  ["Shots", team.shots], ["xG", team.xg.toFixed(2)], ["Goals", team.goals]];
+  const routines = team.by_routine.map(r => `<tr><td>${esc(r.routine === "other" ? "No routine named" : r.routine)}</td><td>${r.deliveries}</td>` +
+    `<td>${r.first_contact_pct == null ? "–" : r.first_contact_pct + "%"}</td><td>${r.shots}</td><td>${r.xg.toFixed(2)}</td><td>${r.goals}</td></tr>`).join("");
+  const list = rows.slice().reverse().map(p => `<tr data-play="${esc(p.play_id)}"><td>${esc(p.minute)}' ${esc(SP_KINDS[p.kind] || p.kind)}${p.routine ? ` · ${esc(p.routine)}` : ""}</td>` +
+    `<td>${esc(FIRST_CONTACT[p.first_contact] || "–")}</td><td>${esc(SP_OUTCOMES[p.outcome] || p.outcome)}</td><td>${p.xg ? p.xg.toFixed(2) : "–"}</td></tr>`).join("");
+  $("sp").innerHTML = `<div class="totals">${totals.map(([k, v]) => `<div><b>${esc(String(v))}</b><span>${esc(k)}</span></div>`).join("")}</div>
+    <div class="sp">
+      <div><div class="pitch"><svg id="sp-pitch" viewBox="50 -5 59 78" role="img" aria-label="Where the deliveries went"></svg></div>
+        <div class="legend">${Object.entries(SP_OUTCOMES).map(([k, v]) => `<span><i style="background:${SP_COLOURS[k]}"></i>${esc(v)}</span>`).join("")}
+          <span><i class="hollow"></i>First contact lost</span></div></div>
+      <div>
+        <table class="mini"><tr><th>Routine</th><th>n</th><th>1st contact</th><th>Shots</th><th>xG</th><th>Goals</th></tr>${routines}</table>
+        <table class="mini" style="margin-top:10px"><tr><th>Each delivery</th><th>1st contact</th><th>Outcome</th><th>xG</th></tr>${list}</table>
+      </div>
+    </div>`;
+  const svg = $("sp-pitch");
+  pitchLines(svg);
+  el("text", { class: "dir", x: 105, y: -1.6, "text-anchor": "end" }, svg).textContent = `${team.code} attack →`;
+  for (const p of rows.filter(p => p.end)) {
+    const won = p.first_contact === "attack", c = SP_COLOURS[p.outcome] || "var(--ink-2)";
+    const g = el("g", { class: "dot", "data-play": p.play_id,
+      "data-tip": esc(`${p.minute}' ${SP_KINDS[p.kind] || p.kind}${p.routine ? ` · ${p.routine}` : ""}<br>First contact ${FIRST_CONTACT[p.first_contact] || "–"} · ${SP_OUTCOMES[p.outcome] || p.outcome}${p.xg ? ` · xG <b>${p.xg.toFixed(2)}</b>` : ""}`) }, svg);
+    el("circle", { cx: p.end[0], cy: p.end[1], r: 1.5, fill: won ? c : "none", stroke: c, "stroke-width": won ? .25 : .5 }, g);
+  }
+  bindTips($("sp"));
+  for (const n of $("sp").querySelectorAll("[data-play]")) n.onclick = () => openPlay(n.dataset.play);
+}
+
+// ── running: every player's distance, high-speed running and sprints, and the drop against his first 30' ──
+function renderRunning() {
+  const d = state.data, m = d.match, ph = d.physical;
+  seg("seg-run", { ours: m.us.code, theirs: m.opponent.code }, state.runTeam, v => { state.runTeam = v; renderRunning(); });
+  const side = sideOf(state.runTeam), team = ph.teams[side];
+  if (!team.players.length) { $("run").innerHTML = `<p class="empty">No tracking for this match.</p>`; return; }
+  const target = d.adherence.targets.find(t => t.metric === "load_drop_pct");
+  const limit = target ? Number(target.value) : 18;
+  const drop = p => p.drop_last_15 ? p.drop_last_15.pct : null;
+  const status = v => v == null ? null : v <= limit ? "on_plan" : v <= limit + 3 ? "drifting" : "off_plan";
+  const max = Math.max(120, ...team.players.flatMap(p => p.per_window.filter(v => v != null)));
+  const bars = p => {
+    const n = p.per_window.length, w = 150 / Math.max(1, n);
+    return `<svg viewBox="0 0 150 22" aria-hidden="true">` + p.per_window.map((v, i) => v == null ? "" :
+      `<rect class="${i >= n - 3 ? "late" : ""}" x="${i * w + .5}" y="${22 - 20 * v / max}" width="${w - 1}" height="${20 * v / max}" data-tip="${esc(`${ph.windows[i]}: <b>${v}</b> m a minute`)}"/>`).join("") + `</svg>`;
+  };
+  const rows = team.players.map(p => {
+    const st = status(drop(p));
+    return `<tr class="${st === "off_plan" ? "flag" : ""}"><td>${playerLabel(p)}${p.keeper ? " <small>GK</small>" : ""}${milestones(p)}</td><td class="num">${p.minutes}'</td>` +
+      `<td class="num">${p.distance_km.toFixed(1)}</td><td class="num">${p.m_per_min ?? "–"}</td><td class="num">${p.hsr_m}</td>` +
+      `<td class="num">${p.sprints}</td><td class="num">${p.top_speed_kmh.toFixed(1)}</td><td class="bars">${bars(p)}</td>` +
+      `<td>${st ? `<span class="num">${drop(p) > 0 ? "−" : "+"}${Math.abs(Math.round(drop(p)))}%</span> ${chip(st)}` : `<span class="num" style="color:var(--muted)">–</span>`}</td></tr>`;
+  }).join("");
+  $("run-title").title = state.runTeam === "ours" ? `Every player; the drop is the last 15' against his first 30' (plan: ≤ ${limit}%)` : "Every player, from the tracking";
+  $("run").innerHTML = `<div class="run-head"><span><b>${team.distance_km}</b>km</span><span><b>${team.hsr_m.toLocaleString()}</b>m over 19.8 km/h</span>` +
+    `<span><b>${team.sprints}</b>sprints over 25.2 km/h</span></div>
+    <table class="mini run"><tr><th>Player</th><th>Min</th><th>km</th><th>m/min</th><th>High-speed m</th><th>Sprints</th><th>Top km/h</th><th>m/min every 5'</th><th>Last 15' v first 30'</th></tr>${rows}</table>`;
+  bindTips($("run"));
+}
+
+// ── deviations ───────────────────────────────────────────────────────────────
+function visibleDevs() {
+  const all = state.data.deviations.slice().sort((a, b) => b.period - a.period || b.match_time_s - a.match_time_s);
+  return state.devFilter === "pending" ? all.filter(d => d.status === "pending_review") : all;
+}
+let devSignature = "";
+function renderDevs() {
+  const all = state.data.deviations;
+  const pending = all.filter(d => d.status === "pending_review").length;
+  $("dev-pending").textContent = `To call (${pending})`;
+  $("dev-all").textContent = `All (${all.length})`;
+  $("dev-pending").setAttribute("aria-pressed", String(state.devFilter === "pending"));
+  $("dev-all").setAttribute("aria-pressed", String(state.devFilter === "all"));
+  const list = visibleDevs();
+  if (!list.some(d => d.deviation_id === state.selectedDev)) state.selectedDev = list[0]?.deviation_id || null;
+  // Rebuilt only when something changed, so a refresh never clears a note being typed
+  const signature = JSON.stringify([state.devFilter, state.selectedDev, list.map(d => [d.deviation_id, d.status, d.note, d.back_on_plan])]);
+  if (signature === devSignature) return;
+  const focused = document.activeElement?.id === "dev-note";
+  if (focused) return;
+  devSignature = signature;
+  if (!list.length) {
+    $("devs").innerHTML = `<li class="empty">${all.length ? "All called." : state.data.adherence.plan ? "On plan." : "No plan."}</li>`;
+    return;
+  }
+  $("devs").innerHTML = list.map(d => {
+    const open = d.deviation_id === state.selectedDev;
+    const outcome = d.status === "confirmed" ? `Flagged for the bench by ${d.reviewed_by}` : d.status === "dismissed" ? `Expected, says ${d.reviewed_by}` : "";
+    return `<li class="dev ${d.status} ${d.priority}" data-dev="${esc(d.deviation_id)}" aria-current="${open}">
+      <button><span class="min">${esc(d.minute)}'</span><span class="t">${d.key ? "★ " : ""}${esc(d.title)}</span>
+        <span class="v">${esc(d.stretch)}: ${esc(d.value)} · plan ${esc(d.target)}</span>
+        <span class="st">${d.back_on_plan ? `<span class="back">✓ back on plan at ${esc(d.back_on_plan.minute)}' (${esc(d.back_on_plan.value)})</span> · ` : "still off plan · "}${esc(outcome || "to call")}</span></button>
+      ${open ? `<div class="body">
+        <p>${esc(d.summary)}</p><p class="check">${esc(d.what_to_check)}</p>
+        ${d.status === "pending_review" ? `<textarea id="dev-note" placeholder="Note (optional)" aria-label="Note">${esc(state.notes[d.deviation_id] || "")}</textarea>` : d.note ? `<p>“${esc(d.note)}”</p>` : ""}
+        <div class="buttons">${d.status === "pending_review"
+          ? `<button class="flag" data-act="confirm">Flag for the bench<kbd>F</kbd></button><button class="expected" data-act="dismiss">Expected<kbd>E</kbd></button>`
+          : `<span class="outcome ${d.status}">${esc(outcome)}</span><button class="reopen" data-act="reopen">Reopen<kbd>R</kbd></button>`}</div>
+      </div>` : ""}</li>`;
+  }).join("");
+  for (const li of $("devs").querySelectorAll(".dev")) li.querySelector("button").onclick = () => { state.selectedDev = li.dataset.dev; renderDevs(); };
+  for (const b of $("devs").querySelectorAll("[data-act]")) b.onclick = () => act(b.dataset.act);
+  if ($("dev-note")) $("dev-note").oninput = e => { state.notes[state.selectedDev] = e.target.value; };
+}
+async function act(action) {
+  const d = state.data?.deviations.find(x => x.deviation_id === state.selectedDev);
+  if (!d) return;
+  if (!(d.status === "pending_review" ? ["confirm", "dismiss"] : ["reopen"]).includes(action)) return;
+  const note = (state.notes[d.deviation_id] || "").trim() || undefined;
+  try {
+    await api(`/api/v1/feed/${encodeURIComponent(`${d.site_id}:${d.deviation_id}`)}/action`,
+              { method: "POST", body: JSON.stringify({ action, by: auth.name, note }) });
+  } catch (e) { if (e.message !== "401") alert("The call wasn't saved: " + e.message); return; }
+  delete state.notes[d.deviation_id];
+  const next = action === "reopen" ? d.deviation_id : visibleDevs().find(x => x.deviation_id !== d.deviation_id && x.status === "pending_review")?.deviation_id;
+  devSignature = "";
+  await refresh();
+  if (next) { state.selectedDev = next; devSignature = ""; renderDevs(); }
+}
+$("dev-pending").onclick = () => { state.devFilter = "pending"; renderDevs(); };
+$("dev-all").onclick = () => { state.devFilter = "all"; renderDevs(); };
+
+// ── plays ────────────────────────────────────────────────────────────────────
+function visiblePlays() {
+  return state.data.plays.filter(p => (!state.keyOnly || p.key) && (!state.playType || p.type === state.playType)
+    && (!state.playTeam || p.side === state.playTeam)).slice().reverse();
+}
+function renderPlays() {
+  const m = state.data.match;
+  const types = [...new Set(state.data.plays.map(p => p.type))];
+  $("f-type").innerHTML = `<option value="">Every type</option>` + Object.keys(TYPE_NAMES).filter(k => types.includes(k))
+    .map(k => `<option value="${k}" ${k === state.playType ? "selected" : ""}>${GLYPHS[k]} ${esc(TYPE_NAMES[k])}</option>`).join("");
+  $("f-team").innerHTML = `<option value="">Both teams</option><option value="${ours()}" ${state.playTeam === ours() ? "selected" : ""}>${esc(m.us.code)}</option>` +
+    `<option value="${theirs()}" ${state.playTeam === theirs() ? "selected" : ""}>${esc(m.opponent.code)}</option>`;
+  const list = visiblePlays();
+  $("plays-sub").textContent = `${list.length} of ${state.data.plays.length}`;
+  $("plays").innerHTML = list.length ? list.slice(0, 200).map(p => `
+    <li class="play"><button data-play="${esc(p.play_id)}">
+      <span class="min">${esc(p.minute)}'</span><span class="g" style="color:${p.side === ours() ? "var(--us)" : "var(--them)"}" aria-hidden="true">${GLYPHS[p.type]}</span>
+      <span class="k">${esc(p.type_name)}</span><span class="team" style="color:${p.side === ours() ? "var(--us)" : "var(--them)"}">${esc(p.team)}</span>
+      <span class="sum">${esc(p.summary)}</span></button></li>`).join("") : `<li class="empty">No plays like that yet.</li>`;
+  for (const b of $("plays").querySelectorAll("button")) b.onclick = () => openPlay(b.dataset.play);
+}
+$("f-type").onchange = e => { state.playType = e.target.value; renderPlays(); };
+$("f-team").onchange = e => { state.playTeam = e.target.value; renderPlays(); };
+$("f-key").onclick = () => { state.keyOnly = true; $("f-key").setAttribute("aria-pressed", "true"); $("f-every").setAttribute("aria-pressed", "false"); renderPlays(); };
+$("f-every").onclick = () => { state.keyOnly = false; $("f-every").setAttribute("aria-pressed", "true"); $("f-key").setAttribute("aria-pressed", "false"); renderPlays(); };
+
+// ── the match story: the narrator agent, for an audience, in a language, following one player ──
+const LANGUAGES = [["en", "English"], ["es", "Español"], ["pt", "Português"], ["fr", "Français"], ["de", "Deutsch"],
+  ["it", "Italiano"], ["nl", "Nederlands"], ["ar", "العربية"], ["ja", "日本語"], ["ko", "한국어"], ["zh", "中文"], ["hi", "हिन्दी"],
+  ["sw", "Kiswahili"], ["tr", "Türkçe"]];
+const RTL = new Set(["ar"]);
+state.story = { matchId: null, busy: false };
+$("s-language").innerHTML = LANGUAGES.map(([code, name]) => `<option value="${code}">${esc(name)}</option>`).join("");
+function renderStory() {
+  const m = state.data.match;
+  if (state.story.matchId !== m.match_id) {
+    // Another match: its own story, and the part that fits it
+    state.story.matchId = m.match_id;
+    $("story").innerHTML = "";
+    $("s-part").value = m.status === "full_time" ? "full" : "live";
+  }
+  // Our players, by shirt number and name, to follow one through the story
+  const team = state.data.physical?.teams?.[ours()];
+  const focus = $("s-focus").value;
+  $("s-focus").innerHTML = `<option value="">The whole team</option>` + (team?.players || []).filter(p => !p.keeper)
+    .map(p => `<option value="${p.number}" ${String(p.number) === focus ? "selected" : ""}>#${p.number}${p.name ? " " + esc(p.name) : ""}</option>`).join("");
+}
+async function tellStory() {
+  if (state.story.busy || !state.data) return;
+  const m = state.data.match, audience = $("s-audience").value, language = $("s-language").value;
+  const q = new URLSearchParams({ match_id: m.match_id, site_id: m.site_id, part: $("s-part").value, audience, language });
+  if ($("s-focus").value) q.set("focus", $("s-focus").value);
+  state.story.busy = true;
+  $("s-go").disabled = true;
+  $("story").className = "story-text";
+  $("story").innerHTML = `<p class="wait">The narrator is reading the match…</p>`;
+  try {
+    const r = await api(`/api/v1/analysis/recap?${q}`);
+    if (state.story.matchId !== m.match_id) return;
+    $("story").className = "story-text" + (audience === "broadcast" ? " captions" : "");
+    $("story").dir = RTL.has(language) ? "rtl" : "auto";
+    const by = r.backend === "azure" ? `the narrator agent on Azure OpenAI${r.model ? ` (${esc(r.model)})` : ""}`
+      : r.backend === "local" ? `the narrator agent on the device's model${r.model ? ` (${esc(r.model)})` : ""}` : "the offline model (Ollama)";
+    $("story").innerHTML = r.recap.split(/\n+/).filter(x => x.trim()).map(x => `<p>${esc(x)}</p>`).join("") +
+      `<p class="by" dir="ltr">Written by ${by}${r.minute && r.status !== "full_time" ? ` at ${esc(r.minute)}'` : ""}, from the match device's numbers.</p>`;
+  } catch (e) {
+    $("story").innerHTML = `<p class="wait">No story: ${esc(e.message)}</p>`;
+  } finally {
+    state.story.busy = false;
+    $("s-go").disabled = false;
+  }
+}
+$("s-go").onclick = tellStory;
+
+// ── the play viewer: the 2D replay, the keyframe or the live camera ──────────
+async function openPlay(playId) {
+  let p;
+  try { p = await api(`/api/v1/analysis/play?play_id=${encodeURIComponent(playId)}&site_id=${encodeURIComponent(state.site)}`); } catch { return; }
+  state.play = p;
+  state.replay = { t: p.track ? p.track.t0 : 0, playing: !reduced && !!p.track, speed: state.replay.speed || 0.5, last: 0 };
+  const m = state.data.match;
+  $("v-title").textContent = p.type_name;
+  $("v-minute").textContent = `${p.minute}'`;
+  $("v-tags").innerHTML = `<span class="tag" style="color:${p.side === ours() ? "var(--us)" : "var(--them)"};border-color:currentColor">${esc(p.team)}</span> ` +
+    (p.synthetic_data ? `<span class="tag demo">Demo data</span>` : `<span class="tag real">Real data</span>`) +
+    (p.source && p.source !== "tracking" ? ` <span class="tag key">${esc(SOURCES[p.source])}</span>` : "");
+  const detail = Object.entries(p.details).filter(([, v]) => v !== null && v !== undefined)
+    .map(([k, v]) => `<dt>${esc(k.replace(/_/g, " "))}</dt><dd>${esc(typeof v === "boolean" ? (v ? "yes" : "no") : String(v).replace(/_/g, " "))}</dd>`).join("");
+  $("v-facts").innerHTML = `<p class="what">${esc(p.summary)}</p>
+    ${p.players.length ? `<p>${p.players.map(x => `${playerLabel(x)} ${esc(x.team_code)} (${esc(ROLES[x.role] || x.role)})`).join(" · ")}</p>` : ""}
+    <dl>${detail}<dt>camera</dt><dd>${esc(p.camera_id)}</dd><dt>confidence</dt><dd>${Math.round(p.confidence * 100)}%</dd></dl>
+    ${p.evidence?.clip_uri ? `<p style="font-size:12px;color:var(--muted)">The clip stays on the club's device: <span class="mono">${esc(p.evidence.clip_uri)}</span></p>` : ""}`;
+  $("v-camtabs").hidden = !p.keyframe;
+  state.view = p.keyframe ? "frame" : "live";
+  showCamera();
+  drawPlayPitch();
+  controls();
+  if (!$("viewer").open) $("viewer").showModal();
+}
+let frameUrl = null;
+async function showCamera() {
+  const p = state.play, box = $("v-camera");
+  box.querySelector(".off")?.remove();
+  for (const b of $("v-camtabs").querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.view === state.view));
+  let cam = $("v-cam");
+  if (!cam) { cam = document.createElement("img"); cam.id = "v-cam"; box.prepend(cam); }
+  cam.onerror = () => { cam.remove(); box.insertAdjacentHTML("beforeend", `<div class="off">The camera doesn't answer. The replay on the pitch still shows the play.</div>`); };
+  if (frameUrl) { URL.revokeObjectURL(frameUrl); frameUrl = null; }
+  if (state.view === "frame") {
+    try { frameUrl = await keyframe(p.site_id, p.play_id); cam.src = frameUrl; } catch { cam.onerror(); }
+  } else {
+    cam.src = `${state.videoUrl}/api/stream.mjpeg?src=${encodeURIComponent(p.camera_id)}`;
+  }
+}
+for (const b of $("v-camtabs").querySelectorAll("button")) b.onclick = () => { state.view = b.dataset.view; showCamera(); };
+const who = p => `${p[0]}-${p[1]}`;
+function drawPlayPitch() {
+  const p = state.play, m = state.data.match, svg = $("v-pitch");
+  svg.innerHTML = "";
+  pitchLines(svg);
+  const k = kits(m.home.code, m.away.code);
+  svg.style.setProperty("--home", k.home); svg.style.setProperty("--home-ink", k.homeInk);
+  svg.style.setProperty("--away", k.away); svg.style.setProperty("--away-ink", k.awayInk);
+  const homeRight = p.snapshot?.home_attacks === "right";
+  const dir = el("text", { class: "dir", x: 105, y: -1.6, "text-anchor": "end" }, svg);
+  dir.textContent = homeRight ? `${m.home.code} attack →` : `← ${m.home.code} attack`;
+  svg.appendChild(el("g", { id: "people" }));
+  if (!p.snapshot) { el("text", { class: "dir", x: 52.5, y: 34, "text-anchor": "middle" }, svg).textContent = "No positions for this play"; return; }
+  drawFrame();
+}
+function frameAt(p, t) {
+  const tr = p.track;
+  if (!tr) return p.snapshot ? { ball: p.snapshot.ball, players: p.snapshot.players } : null;
+  const f = Math.max(0, Math.min(tr.frames.length - 1, (t - tr.t0) * tr.hz));
+  const i = Math.floor(f), k = f - i;
+  const A = tr.frames[i], B = tr.frames[Math.min(i + 1, tr.frames.length - 1)];
+  const next = new Map(B.players.map(q => [who(q), q]));
+  const lerp = (a, b) => b ? [a[2] + (b[2] - a[2]) * k, a[3] + (b[3] - a[3]) * k] : [a[2], a[3]];
+  return { ball: A.ball && B.ball ? [A.ball[0] + (B.ball[0] - A.ball[0]) * k, A.ball[1] + (B.ball[1] - A.ball[1]) * k] : A.ball,
+           players: A.players.map(q => [q[0], q[1], ...lerp(q, next.get(who(q)))]) };
+}
+function drawFrame() {
+  const p = state.play, g = $("people");
+  if (!p || !g) return;
+  const frame = frameAt(p, state.replay.t);
+  if (!frame) return;
+  const roles = new Map(p.players.map(x => [`${x.team}-${x.number}`, x.role]));
+  const seen = new Set();
+  for (const q of frame.players) {
+    const id = `p-${who(q)}`;
+    seen.add(id);
+    let node = g.querySelector(`#${CSS.escape(id)}`);
+    if (!node) {
+      const role = roles.get(who(q));
+      node = el("g", { id, class: `player${role ? " actor" : ""}` }, g);
+      if (role) el("circle", { class: "ring", r: 2.7 }, node);
+      el("circle", { class: "disc", r: 1.75, fill: `var(--${q[0]}, #888)` }, node);
+      el("text", { fill: `var(--${q[0]}-ink, #fff)` }, node).textContent = q[1] ?? "";
+      if (role) el("text", { class: "role", y: -3.4, "text-anchor": "middle" }, node).textContent = ROLES[role] || role;
+    }
+    node.setAttribute("transform", `translate(${q[2].toFixed(2)} ${q[3].toFixed(2)})`);
+  }
+  for (const node of [...g.children]) if (node.id.startsWith("p-") && !seen.has(node.id)) node.remove();
+  for (const node of g.querySelectorAll(".actor")) g.appendChild(node);
+  let ball = g.querySelector("#ball");
+  if (!ball) { ball = el("g", { id: "ball", class: "ball" }); el("circle", { r: .75 }, ball); }
+  g.appendChild(ball);
+  if (frame.ball) { ball.setAttribute("transform", `translate(${frame.ball[0].toFixed(2)} ${frame.ball[1].toFixed(2)})`); ball.style.display = ""; }
+  else ball.style.display = "none";
+}
+function controls() {
+  const p = state.play, tr = p?.track, scrub = $("v-scrub");
+  const lo = tr ? tr.t0 : 0, hi = tr ? tr.t0 + (tr.frames.length - 1) / tr.hz : 0;
+  scrub.min = lo; scrub.max = hi; scrub.value = state.replay.t; scrub.disabled = !tr;
+  $("v-t").textContent = `${state.replay.t >= 0 ? "+" : "−"}${Math.abs(state.replay.t).toFixed(1)} s`;
+  $("v-play").textContent = state.replay.playing ? "❚❚" : "▶";
+  for (const b of document.querySelectorAll("#viewer [data-speed]")) b.setAttribute("aria-pressed", String(+b.dataset.speed === state.replay.speed));
+}
+const atEnd = p => p.track && state.replay.t >= p.track.t0 + (p.track.frames.length - 1) / p.track.hz - 1e-6;
+function step(dir) {
+  const p = state.play;
+  if (!p?.track) return;
+  state.replay.playing = false;
+  const i = Math.round((state.replay.t - p.track.t0) * p.track.hz) + dir;
+  state.replay.t = p.track.t0 + Math.max(0, Math.min(p.track.frames.length - 1, i)) / p.track.hz;
+  controls(); drawFrame();
+}
+function tick(now) {
+  const r = state.replay, p = state.play;
+  if (p?.track && r.playing && $("viewer").open) {
+    if (r.last) r.t += (now - r.last) / 1000 * r.speed;
+    if (atEnd(p)) { r.t = p.track.t0 + (p.track.frames.length - 1) / p.track.hz; r.playing = false; }
+    drawFrame(); controls();
+  }
+  r.last = r.playing ? now : 0;
+  requestAnimationFrame(tick);
+}
+function neighbour(dir) {
+  const list = visiblePlays();
+  let i = list.findIndex(x => x.play_id === state.play?.play_id);
+  if (i < 0) i = 0; else i = Math.max(0, Math.min(list.length - 1, i + dir));
+  if (list[i]) openPlay(list[i].play_id);
+}
+$("v-play").onclick = () => { const p = state.play; state.replay.playing = !state.replay.playing; if (state.replay.playing && atEnd(p)) state.replay.t = p.track.t0; controls(); };
+$("v-back").onclick = () => step(-1);
+$("v-fwd").onclick = () => step(1);
+$("v-key").onclick = () => { state.replay.playing = false; state.replay.t = 0; controls(); drawFrame(); };
+$("v-scrub").oninput = e => { state.replay.playing = false; state.replay.t = +e.target.value; controls(); drawFrame(); };
+for (const b of document.querySelectorAll("#viewer [data-speed]")) b.onclick = () => { state.replay.speed = +b.dataset.speed; controls(); };
+$("v-close").onclick = () => $("viewer").close();
+$("v-prev").onclick = () => neighbour(1);
+$("v-next").onclick = () => neighbour(-1);
+$("viewer").addEventListener("close", () => { const cam = $("v-cam"); if (cam) cam.src = ""; });
+
+// ── keys ─────────────────────────────────────────────────────────────────────
+document.addEventListener("keydown", e => {
+  if (e.target.closest("textarea, input, select") || e.metaKey || e.ctrlKey || e.altKey) return;
+  const key = e.key.toLowerCase();
+  if ($("viewer").open) {
+    if (key === " ") { e.preventDefault(); $("v-play").click(); }
+    else if (e.key === "ArrowLeft") step(-1);
+    else if (e.key === "ArrowRight") step(1);
+    else if (key === "j") neighbour(-1);
+    else if (key === "k") neighbour(1);
+    return;
+  }
+  if ($("signin")?.open || !state.data) return;
+  const list = visibleDevs();
+  const i = list.findIndex(d => d.deviation_id === state.selectedDev);
+  if (key === "j" && list.length) { state.selectedDev = list[Math.min(list.length - 1, i + 1)].deviation_id; renderDevs(); }
+  else if (key === "k" && list.length) { state.selectedDev = list[Math.max(0, i - 1)].deviation_id; renderDevs(); }
+  else if (key === "f") act("confirm");
+  else if (key === "e") act("dismiss");
+  else if (key === "r") act("reopen");
+});
+$("match").onchange = e => { state.matchId = e.target.value; state.selectedDev = null; devSignature = ""; refresh(); };
+
+// ── start ────────────────────────────────────────────────────────────────────
+onSignedIn = refresh;
+requestAnimationFrame(tick);
+leagueReady.then(() => { if (!auth.name) signIn(); else refresh(); });
+setInterval(() => { if (!$("signin")?.open && !$("viewer").open && !document.hidden) refresh(); }, 5000);
+</script>
+</body>
+</html>

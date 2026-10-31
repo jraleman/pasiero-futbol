@@ -1,0 +1,452 @@
+{
+ "match_id": "EPL-20261027-2324-BHA-HUL",
+ "site_id": "brighton",
+ "kickoff": "2026-10-27T23:24:00+00:00",
+ "length": 6723,
+ "first_half": 2880,
+ "second_half": 3780,
+ "steps": [
+  {
+   "at": 2,
+   "file": "6930df84b7aea521.json"
+  },
+  {
+   "at": 62,
+   "file": "c94d0d6652c26e12.json"
+  },
+  {
+   "at": 122,
+   "file": "7a8a87f47976403a.json"
+  },
+  {
+   "at": 182,
+   "file": "a78db1fd4c36d296.json"
+  },
+  {
+   "at": 242,
+   "file": "21c92365cbd9f43f.json"
+  },
+  {
+   "at": 302,
+   "file": "0393df5e4ea85d0a.json"
+  },
+  {
+   "at": 362,
+   "file": "4462457ed359a1ad.json"
+  },
+  {
+   "at": 422,
+   "file": "c44aca22d5acead4.json"
+  },
+  {
+   "at": 482,
+   "file": "e8239f59cce6f18b.json"
+  },
+  {
+   "at": 542,
+   "file": "29563793423b33b5.json"
+  },
+  {
+   "at": 602,
+   "file": "f32726ea1ac70d3d.json"
+  },
+  {
+   "at": 662,
+   "file": "96fb48422a90db6a.json"
+  },
+  {
+   "at": 722,
+   "file": "6053822ac318fcde.json"
+  },
+  {
+   "at": 782,
+   "file": "0d9d132299a43dea.json"
+  },
+  {
+   "at": 842,
+   "file": "d3a9adc361cfe64a.json"
+  },
+  {
+   "at": 902,
+   "file": "05c1df51f81530c6.json"
+  },
+  {
+   "at": 962,
+   "file": "2799ce03ae616aea.json"
+  },
+  {
+   "at": 1022,
+   "file": "e0a4bcc3f30c1147.json"
+  },
+  {
+   "at": 1082,
+   "file": "ebc1d07e48ae78f7.json"
+  },
+  {
+   "at": 1142,
+   "file": "24f5889406d3ee5e.json"
+  },
+  {
+   "at": 1202,
+   "file": "506e316c394e3922.json"
+  },
+  {
+   "at": 1262,
+   "file": "aa912d4dd32e487b.json"
+  },
+  {
+   "at": 1322,
+   "file": "274219f495b04530.json"
+  },
+  {
+   "at": 1382,
+   "file": "8378f18f16fd3b84.json"
+  },
+  {
+   "at": 1442,
+   "file": "fea815296978344c.json"
+  },
+  {
+   "at": 1502,
+   "file": "26fdb85bf4379667.json"
+  },
+  {
+   "at": 1562,
+   "file": "381571f51e0a2efa.json"
+  },
+  {
+   "at": 1622,
+   "file": "aac6f3ef40357f93.json"
+  },
+  {
+   "at": 1682,
+   "file": "4281649a813ffe83.json"
+  },
+  {
+   "at": 1742,
+   "file": "c488fdfc676640e3.json"
+  },
+  {
+   "at": 1802,
+   "file": "b15eb5b1cd016b2c.json"
+  },
+  {
+   "at": 1862,
+   "file": "110d92bff8cf1a2c.json"
+  },
+  {
+   "at": 1922,
+   "file": "00fa8680f500ddaf.json"
+  },
+  {
+   "at": 1982,
+   "file": "e7ce8d48df8181f3.json"
+  },
+  {
+   "at": 2042,
+   "file": "096512dae7544948.json"
+  },
+  {
+   "at": 2102,
+   "file": "a34d8834293a42b5.json"
+  },
+  {
+   "at": 2162,
+   "file": "7def299c645de478.json"
+  },
+  {
+   "at": 2222,
+   "file": "267553d17a736f16.json"
+  },
+  {
+   "at": 2282,
+   "file": "f370c43813d93acb.json"
+  },
+  {
+   "at": 2342,
+   "file": "d4b18327351bf065.json"
+  },
+  {
+   "at": 2402,
+   "file": "593767272876080b.json"
+  },
+  {
+   "at": 2462,
+   "file": "abdf87cd157d45f7.json"
+  },
+  {
+   "at": 2522,
+   "file": "eb77625a29872ff9.json"
+  },
+  {
+   "at": 2582,
+   "file": "ec18b58f7e53ff01.json"
+  },
+  {
+   "at": 2642,
+   "file": "001b5a61590d7843.json"
+  },
+  {
+   "at": 2702,
+   "file": "d9a791136e9d69d8.json"
+  },
+  {
+   "at": 2762,
+   "file": "6c96d882d8ee20b2.json"
+  },
+  {
+   "at": 2822,
+   "file": "61d0d7ec5acf96e1.json"
+  },
+  {
+   "at": 2882,
+   "file": "19611bc169766475.json"
+  },
+  {
+   "at": 3842,
+   "file": "c13efe916b701bca.json"
+  },
+  {
+   "at": 3902,
+   "file": "5d791bbc000b6fa6.json"
+  },
+  {
+   "at": 3962,
+   "file": "2aab943506d67055.json"
+  },
+  {
+   "at": 4022,
+   "file": "c6bd4e789d6c2452.json"
+  },
+  {
+   "at": 4082,
+   "file": "34c650cb194d0c53.json"
+  },
+  {
+   "at": 4142,
+   "file": "5b2b2e23a2dfb105.json"
+  },
+  {
+   "at": 4202,
+   "file": "a2cde2ecf9243bdf.json"
+  },
+  {
+   "at": 4262,
+   "file": "c8670b8bdd5cbf83.json"
+  },
+  {
+   "at": 4322,
+   "file": "4b6c3b5f2c110576.json"
+  },
+  {
+   "at": 4382,
+   "file": "d1802c7dd20f7e36.json"
+  },
+  {
+   "at": 4442,
+   "file": "e4bebca5bc57fb2e.json"
+  },
+  {
+   "at": 4502,
+   "file": "c84941cb8884e7fc.json"
+  },
+  {
+   "at": 4562,
+   "file": "35b9c69223b2c722.json"
+  },
+  {
+   "at": 4622,
+   "file": "d7a1ac7c150a21ac.json"
+  },
+  {
+   "at": 4682,
+   "file": "f796ee8874aacc31.json"
+  },
+  {
+   "at": 4742,
+   "file": "7306ca0ff6903850.json"
+  },
+  {
+   "at": 4802,
+   "file": "182391220cceb8f6.json"
+  },
+  {
+   "at": 4862,
+   "file": "0a350b1e1232f01a.json"
+  },
+  {
+   "at": 4922,
+   "file": "c66ea977e26a3889.json"
+  },
+  {
+   "at": 4982,
+   "file": "f5db0662500935d9.json"
+  },
+  {
+   "at": 5042,
+   "file": "40ff12207cc4f26d.json"
+  },
+  {
+   "at": 5102,
+   "file": "8ac0d4a6bb2cd612.json"
+  },
+  {
+   "at": 5162,
+   "file": "af0167f145c563fd.json"
+  },
+  {
+   "at": 5222,
+   "file": "6a2bb6d01e7769d5.json"
+  },
+  {
+   "at": 5282,
+   "file": "200a23e3103a3a48.json"
+  },
+  {
+   "at": 5342,
+   "file": "09ec9a0dcebc29f9.json"
+  },
+  {
+   "at": 5402,
+   "file": "9d8e2530bbd09db5.json"
+  },
+  {
+   "at": 5462,
+   "file": "d974ad1e92165e00.json"
+  },
+  {
+   "at": 5522,
+   "file": "81925d0e8400e2f3.json"
+  },
+  {
+   "at": 5582,
+   "file": "c94092d8aac7f91a.json"
+  },
+  {
+   "at": 5642,
+   "file": "e071c3a092d40fb0.json"
+  },
+  {
+   "at": 5702,
+   "file": "69e2386746f58bc4.json"
+  },
+  {
+   "at": 5762,
+   "file": "cc2244c4f268c52a.json"
+  },
+  {
+   "at": 5822,
+   "file": "2a8c3b25a0c6828d.json"
+  },
+  {
+   "at": 5882,
+   "file": "887c1920ff5fb65c.json"
+  },
+  {
+   "at": 5942,
+   "file": "de16f2591597c868.json"
+  },
+  {
+   "at": 6002,
+   "file": "1ea138334886f929.json"
+  },
+  {
+   "at": 6062,
+   "file": "1dc68a17e4ca493c.json"
+  },
+  {
+   "at": 6122,
+   "file": "d3dcb3b316b0491f.json"
+  },
+  {
+   "at": 6182,
+   "file": "4bf267164446751e.json"
+  },
+  {
+   "at": 6242,
+   "file": "e718452e2c72669a.json"
+  },
+  {
+   "at": 6302,
+   "file": "61bad9ea4c97ad22.json"
+  },
+  {
+   "at": 6362,
+   "file": "9a658b3670a59261.json"
+  },
+  {
+   "at": 6422,
+   "file": "ce81a3f6d6b325f4.json"
+  },
+  {
+   "at": 6482,
+   "file": "531443d7afd6bda0.json"
+  },
+  {
+   "at": 6542,
+   "file": "20b237425fbc15eb.json"
+  },
+  {
+   "at": 6602,
+   "file": "6829a0e3053fafa2.json"
+  },
+  {
+   "at": 6662,
+   "file": "17daeae18ee27190.json"
+  },
+  {
+   "at": 6722,
+   "file": "2c040287012c36ac.json"
+  }
+ ],
+ "moments": [
+  {
+   "at": 2,
+   "label": "Kick-off"
+  },
+  {
+   "at": 1142,
+   "label": "19' Goal, BHA: 1-0"
+  },
+  {
+   "at": 2102,
+   "label": "35' Off plan: Counter-press regains, Team length out of possession, Press intensity (PPDA)"
+  },
+  {
+   "at": 2402,
+   "label": "40' Off plan: Defensive line height"
+  },
+  {
+   "at": 2462,
+   "label": "41' Goal, HUL: 1-1"
+  },
+  {
+   "at": 2882,
+   "label": "Half time"
+  },
+  {
+   "at": 4742,
+   "label": "61' HUL change shape in possession: 4-2-3-1 to 3-4-3"
+  },
+  {
+   "at": 4862,
+   "label": "63' Goal, BHA: 2-1"
+  },
+  {
+   "at": 5282,
+   "label": "70' Off plan: Running drop (any player)"
+  },
+  {
+   "at": 5882,
+   "label": "80' Off plan: Shape out of possession, Defensive line height, Width in possession"
+  },
+  {
+   "at": 5942,
+   "label": "81' BHA change shape out of possession: 4-4-2 to 5-4-1"
+  },
+  {
+   "at": 6722,
+   "label": "Full time"
+  }
+ ]
+}

@@ -1,0 +1,91 @@
+/* Shared by the analysis room, the plan editor and the reports. */
+/* The theme (theme.css, from themes/<id>/site/ by iot/scripts/theme.py) sets the surfaces, the ink, the
+   brand's colours and the fonts; these are the data colours, the same in every theme. */
+:root {
+  /* The two sides in charts: validated categorical steps (us blue, them aqua), always labelled */
+  --us: #3987e5;
+  --them: #199e70;
+  /* Status: good, warning, critical, each with an icon and a word */
+  --on: #0ca30c;
+  --drift: #fab219;
+  --off: #d03b3b;
+  --nodata: #6c7d70;
+  --pitch: #12301c;
+  --chalk: rgba(226, 236, 228, .38);
+  --chalk-2: rgba(226, 236, 228, .14);
+}
+@media (prefers-color-scheme: light) {
+  :root:where(:not([data-theme="dark"])) {
+    --us: #2a78d6;
+    --them: #1baf7a;
+    --pitch: #2e6b3d;
+    --chalk: rgba(255, 255, 255, .55);
+    --chalk-2: rgba(255, 255, 255, .18);
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+/* The theme's bar along the top of every page */
+body::before { content: ""; display: block; height: 6px; background: var(--bar); }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 15px/1.45 var(--body);
+}
+button, input, textarea, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mono, .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+/* a synthetic player's fictional name, after his shirt number */
+.pname { color: var(--muted); white-space: nowrap; }
+/* a player's milestone in the Running table (over 30 km/h, 5 and 10 km) */
+.tag.mile { font-size: 10.5px; padding: 0 5px; white-space: nowrap; }
+h1, h2, h3 { font-family: var(--display); letter-spacing: .01em; }
+
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px 1px 6px; border-radius: 999px; font-size: 12px;
+        font-weight: 600; border: 1px solid currentColor; white-space: nowrap; line-height: 1.5; }
+.chip b { font-family: var(--mono); font-size: 11px; }
+.chip.on_plan { color: var(--on); }
+.chip.drifting { color: var(--drift); }
+.chip.off_plan { color: var(--off); }
+.chip.no_data { color: var(--muted); }
+.tag { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--ink-2); white-space: nowrap; }
+.tag.demo { border-color: var(--drift); color: var(--drift); }
+.tag.real { border-color: var(--us); color: var(--us); }
+.tag.key { border-color: var(--accent); color: var(--accent); }
+.crest-none { display: inline-grid; place-items: center; border-radius: 50%; background: var(--raise); border: 1px solid var(--line-2);
+              font: 700 11px var(--display); color: var(--ink-2); }
+
+/* the pitch */
+.pitch { background: var(--pitch); border-radius: 8px; padding: 8px; position: relative; }
+.pitch svg { display: block; width: 100%; height: auto; }
+.pitch .lines { stroke: var(--chalk); stroke-width: .22; fill: none; }
+.pitch .net { stroke: var(--chalk); stroke-width: .18; fill: var(--chalk-2); }
+.pitch .third { stroke: var(--chalk-2); stroke-width: .2; stroke-dasharray: .8 .8; }
+.pitch .player text { font: 600 1.65px var(--body); text-anchor: middle; dominant-baseline: central; }
+.pitch .player .disc { stroke: rgba(0, 0, 0, .55); stroke-width: .18; }
+.pitch .player .ring { fill: none; stroke: var(--highlight); stroke-width: .38; }
+.pitch .player .role { font: 600 1.6px var(--body); fill: #fff; paint-order: stroke; stroke: rgba(0, 0, 0, .7); stroke-width: .5; }
+.pitch .ball circle { fill: #fff; stroke: #0b130e; stroke-width: .18; }
+.pitch .ghost { fill: none; stroke: var(--highlight); stroke-width: .22; stroke-dasharray: .7 .5; opacity: .85; }
+.pitch .ghost-label { font: 600 1.7px var(--mono); fill: var(--highlight); }
+.pitch .link { stroke: #fff; stroke-linecap: round; }
+.pitch .dir { fill: #fff; opacity: .7; font: 600 1.9px var(--body); }
+.pitch .linemark { stroke: var(--highlight); stroke-width: .3; stroke-dasharray: 1 .6; }
+
+dialog { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--ink); padding: 22px; }
+dialog::backdrop { background: rgba(8, 6, 6, .72); }
+#signin { width: min(420px, calc(100vw - 32px)); }
+#signin img { display: block; margin-bottom: 6px; }
+#signin h2 { margin: 0 0 4px; font: 800 26px var(--display); text-transform: uppercase; }
+#signin p { margin: 0 0 14px; color: var(--ink-2); }
+#signin label { display: grid; gap: 4px; margin-bottom: 12px; font-size: 13px; color: var(--ink-2); }
+#signin input { background: var(--raise); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+#signin button { background: var(--accent); color: var(--on-accent); border: 0; border-radius: 6px; padding: 9px 18px; font-weight: 600; cursor: pointer; }
+#signin .error { color: var(--off); font-size: 13px; min-height: 1.2em; margin: 0 0 8px; }
+
+/* the tooltip charts share */
+.tip { position: fixed; z-index: 10; pointer-events: none; background: var(--panel); border: 1px solid var(--line-2); border-radius: 6px;
+       padding: 6px 9px; font-size: 12.5px; box-shadow: 0 6px 20px rgba(0, 0, 0, .35); display: none; max-width: 280px; }
+.tip b { font-family: var(--mono); font-weight: 500; }
+.tip .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }

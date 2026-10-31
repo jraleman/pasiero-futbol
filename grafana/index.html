@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Match analysis</title>
+<link rel="icon" href="../analysis/marks/mark.svg">
+<link rel="stylesheet" href="../analysis/theme.css">
+<style>
+  /* A snapshot of Grafana's Match analysis board per recorded match (record.py, grafana.mjs), in the dashboard's
+     light or dark (?theme=, as its Grafana tab passes it; else the system's) */
+  :root { --g-bg: #111217; --g-ink: #ccccdc; --g-line: #2a2b33; }
+  :root.light { --g-bg: #f4f5f5; --g-ink: #24292e; --g-line: #d8d9dd; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--g-bg); color: var(--g-ink); font: 14px/1.4 var(--body); }
+  header { display: flex; gap: 12px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--g-line);
+           position: sticky; top: 0; background: var(--g-bg); z-index: 1; flex-wrap: wrap; }
+  header b { font: 600 15px var(--display); }
+  select { font: inherit; color: inherit; background: transparent; border: 1px solid var(--g-line); border-radius: 8px; padding: 5px 8px; max-width: 100%; }
+  select option { background: var(--g-bg); }
+  .note { margin-left: auto; font-size: 12px; opacity: .7; }
+  img { display: block; width: 100%; max-width: 1440px; height: auto; margin: 0 auto; }
+</style>
+</head>
+<body>
+<header>
+  <b>Match analysis</b>
+  <select id="match" aria-label="Match"></select>
+  <span class="note" id="note"></span>
+</header>
+<img id="board" alt="Grafana's Match analysis board for the match">
+<script>
+"use strict";
+const params = new URLSearchParams(location.search);
+const theme = params.get("theme") || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+document.documentElement.classList.toggle("light", theme === "light");
+fetch("matches.json").then(r => r.json()).then(({ recorded, matches }) => {
+  const sel = document.getElementById("match");
+  sel.innerHTML = matches.map(m => `<option value="${m.id}">${m.label}</option>`).join("");
+  const show = () => { document.getElementById("board").src = `img/${sel.value}.${theme}.jpg`; };
+  sel.onchange = show;
+  show();
+  document.getElementById("note").textContent = `Snapshot · ${recorded}`;
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="marks/mark.svg">
+<title data-brand-suffix>Season</title>
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="common.css">
+<script src="brand.js"></script>
+<script src="static.js"></script>
+<style>
+.bar { display: flex; align-items: center; gap: 14px; padding: 10px 20px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.bar img { width: 42px; height: 42px; object-fit: contain; }
+.bar h1 { margin: 0; font: 800 26px var(--display); text-transform: uppercase; letter-spacing: .04em; }
+.bar select { background: var(--raise); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+.bar a { margin-left: auto; color: var(--ink); border: 1px solid var(--line-2); border-radius: 6px; padding: 6px 10px; text-decoration: none; font-size: 13px; font-weight: 600; }
+main { max-width: 1240px; margin: 0 auto; padding: 18px 20px 40px; display: grid; gap: 16px; }
+section.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+section.card > header { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+section.card h2 { margin: 0; font: 700 21px var(--display); text-transform: uppercase; letter-spacing: .04em; }
+section.card .sub { color: var(--muted); font-size: 13px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.split { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 16px; }
+.totals { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 10px; }
+.totals div { background: var(--raise); border-radius: 6px; padding: 6px 8px; }
+.totals b { display: block; font: 700 22px/1.1 var(--display); }
+.totals span { font-size: 11.5px; color: var(--muted); }
+table.mini { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.mini th { text-align: right; font-weight: 500; color: var(--muted); font-size: 12px; padding: 3px 6px; border-bottom: 1px solid var(--line); }
+table.mini td { text-align: right; padding: 5px 6px; border-bottom: 1px solid var(--line); font-family: var(--mono); }
+table.mini th:first-child, table.mini td:first-child { text-align: left; font-family: inherit; }
+table.mini td .bar-in { display: inline-block; height: 8px; border-radius: 2px; vertical-align: 0; margin-left: 6px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--ink-2); margin-top: 6px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+.legend i.hollow { background: none !important; border: 2px solid var(--ink-2); width: 8px; height: 8px; }
+.empty { color: var(--muted); }
+.note { font-size: 12.5px; color: var(--muted); margin: 8px 0 0; }
+@media (max-width: 1000px) { .two, .split { grid-template-columns: 1fr; } .totals { grid-template-columns: repeat(3, 1fr); } }
+</style>
+</head>
+<body>
+<header class="bar">
+  <picture><source srcset="marks/mark.svg" media="(prefers-color-scheme: light)"><img class="mark" src="marks/mark-white.svg" alt=""></picture><h1>Season</h1>
+  <select id="period" aria-label="Period">
+    <option value="season">This season</option><option value="30d">Last 30 days</option><option value="this_month">This month</option>
+  </select>
+  <select id="opponent" aria-label="Opponent"><option value="">Every opponent</option></select>
+  <a href="./">Back to the analysis room</a>
+</header>
+<main>
+  <div class="two">
+    <section class="card">
+      <header><h2 title="Deliveries into the box, by the club&#x27;s routines">Our set pieces</h2></header>
+      <div id="for"></div>
+    </section>
+    <section class="card">
+      <header><h2 title="What we faced, and who won the first ball. “First contact” here is theirs: the lower, the better we defended. Their routines aren't named: the device names only ours.">Their set pieces</h2></header>
+      <div id="against"></div>
+    </section>
+  </div>
+  <section class="card">
+    <header><h2 title="Ours and theirs">Set pieces, match by match</h2></header>
+    <div id="matches"></div>
+  </section>
+  <section class="card">
+    <header><h2 title="Per 90 minutes, over the matches played; high-speed running over 19.8 km/h, sprints over 25.2 km/h">Squad running</h2></header>
+    <div class="two"><div id="squad"></div><div id="team-run"></div></div>
+  </section>
+</main>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script src="common.js"></script>
+<script>
+"use strict";
+const SP_COLOURS = { goal: "var(--highlight)", shot: "var(--us)", cleared: "var(--nodata)", retained: "var(--ink-2)" };
+const state = { period: "season", opponent: "" };
+
+function bindTips(root) {
+  const tipEl = $("tip");
+  for (const node of root.querySelectorAll("[data-tip]")) {
+    node.addEventListener("pointerenter", () => { tipEl.innerHTML = node.dataset.tip; tipEl.style.display = "block"; });
+    node.addEventListener("pointermove", e => {
+      const r = tipEl.getBoundingClientRect();
+      tipEl.style.left = Math.min(innerWidth - r.width - 8, e.clientX + 12) + "px";
+      tipEl.style.top = Math.max(8, e.clientY - r.height - 10) + "px";
+    });
+    node.addEventListener("pointerleave", () => { tipEl.style.display = "none"; });
+  }
+}
+
+const pct = v => v == null ? "–" : `${v}%`;
+function totals(t) {
+  return `<div class="totals">${[["Deliveries", t.deliveries], ["First contact won", pct(t.first_contact_pct)], ["Shots", t.shots],
+    ["xG", t.xg.toFixed(2)], ["Goals", t.goals]].map(([k, v]) => `<div><b>${esc(String(v))}</b><span>${esc(k)}</span></div>`).join("")}</div>`;
+}
+function groupTable(rows, key, label, name = v => v) {
+  if (!rows.length) return "";
+  return `<table class="mini"><tr><th>${esc(label)}</th><th>n</th><th>1st contact</th><th>Shots</th><th>xG</th><th>Goals</th></tr>` +
+    rows.map(r => `<tr><td>${esc(name(r[key]))}</td><td>${r.deliveries}</td><td>${pct(r.first_contact_pct)}</td><td>${r.shots}</td>` +
+      `<td>${r.xg.toFixed(2)}</td><td>${r.goals}</td></tr>`).join("") + `</table>`;
+}
+// Where the deliveries went, the attacking end, the team attacking right
+function map(id, rows, whose) {
+  const svg = $(id);
+  svg.innerHTML = "";
+  pitchLines(svg);
+  el("text", { class: "dir", x: 105, y: -1.6, "text-anchor": "end" }, svg).textContent = `${whose} attack →`;
+  for (const p of rows) {
+    const c = SP_COLOURS[p.outcome] || "var(--ink-2)", won = p.first_contact === "attack";
+    const tip = `${p.match_id.slice(4, 12)} ${p.minute}' ${SP_KINDS[p.kind] || p.kind}${p.routine ? ` · ${p.routine}` : ""}${p.opponent ? ` · ${p.opponent}` : ""}` +
+                `<br>First contact ${FIRST_CONTACT[p.first_contact] || "–"} · ${SP_OUTCOMES[p.outcome] || p.outcome}`;
+    el("circle", { cx: p.end[0], cy: p.end[1], r: 1.3, fill: won ? c : "none", stroke: c, "stroke-width": won ? .2 : .45,
+                   "data-tip": esc(tip) }, svg);
+  }
+}
+const legend = `<div class="legend">${Object.entries(SP_OUTCOMES).map(([k, v]) => `<span><i style="background:${SP_COLOURS[k]}"></i>${esc(v)}</span>`).join("")}` +
+  `<span><i class="hollow"></i>First contact lost (ours), won by them (theirs)</span></div>`;
+
+async function load() {
+  const q = `period=${encodeURIComponent(state.period)}${state.opponent ? `&opponent=${encodeURIComponent(state.opponent)}` : ""}`;
+  let sp, run;
+  try { [sp, run] = await Promise.all([api(`/api/v1/analysis/set_pieces?${q}`), api(`/api/v1/analysis/physical?period=${encodeURIComponent(state.period)}`)]); }
+  catch { return; }
+  const us = league?.club || "BHA";
+  const opponents = [...new Set(sp.matches.map(m => m.opponent))];
+  if ($("opponent").options.length <= 1) {
+    const all = await api(`/api/v1/analysis/set_pieces?period=${encodeURIComponent(state.period)}`).catch(() => sp);
+    const codes = [...new Set(all.matches.map(m => m.opponent))].sort();
+    $("opponent").innerHTML = `<option value="">Every opponent</option>` + codes.map(c => `<option value="${esc(c)}">${esc(club(c)?.name || c)}</option>`).join("");
+  }
+  // Ours: by routine and kind, and the map
+  const f = sp.for, a = sp.against;
+  $("for").innerHTML = f.deliveries ? totals(f) + `<div class="split"><div><div class="pitch"><svg id="map-for" viewBox="50 -5 59 78" role="img" aria-label="Our deliveries"></svg></div>${legend}</div>
+      <div>${groupTable(f.by_routine, "routine", "Routine", v => v === "other" ? "No routine named" : v)}<div style="height:10px"></div>${groupTable(f.by_kind, "kind", "Kind", v => SP_KINDS[v] || v)}</div></div>`
+    : `<p class="empty">No set pieces of ours in this period${state.opponent ? " against " + esc(state.opponent) : ""}.</p>`;
+  if (f.deliveries) map("map-for", sp.deliveries.for, us);
+  $("against").innerHTML = a.deliveries ? totals(a) + `<div class="split"><div><div class="pitch"><svg id="map-against" viewBox="50 -5 59 78" role="img" aria-label="Their deliveries"></svg></div>${legend}</div>
+      <div>${groupTable(a.by_delivery, "delivery", "Where", v => ({ near_post: "Near post", far_post: "Far post", six_yard: "Six-yard box", penalty_spot: "Penalty spot", edge: "Edge of the box", short: "Short", other: "Direct, at goal" })[v] || v)}
+      <div style="height:10px"></div>${state.opponent ? groupTable(a.by_kind, "kind", "Kind", v => SP_KINDS[v] || v) : groupTable(a.by_opponent, "opponent", "Opponent", v => club(v)?.name || v)}</div></div>`
+    : `<p class="empty">No set pieces against us in this period.</p>`;
+  if (a.deliveries) map("map-against", sp.deliveries.against, "They");
+  // Match by match
+  const top = Math.max(0.5, ...sp.matches.flatMap(m => [m.for.xg, m.against.xg]));
+  $("matches").innerHTML = sp.matches.length ? `<table class="mini"><tr><th>Match</th><th>Ours</th><th>1st contact</th><th>xG</th><th>Theirs</th><th>Their 1st contact</th><th>xG against</th></tr>` +
+    sp.matches.slice().reverse().map(m => `<tr><td>${esc(m.kickoff.slice(5, 10))} v ${esc(club(m.opponent)?.name || m.opponent)}</td>` +
+      `<td>${m.for.deliveries}</td><td>${pct(m.for.first_contact_pct)}</td><td>${m.for.xg.toFixed(2)}<span class="bar-in" style="width:${Math.round(60 * m.for.xg / top)}px;background:var(--us)"></span></td>` +
+      `<td>${m.against.deliveries}</td><td>${pct(m.against.first_contact_pct)}</td><td>${m.against.xg.toFixed(2)}<span class="bar-in" style="width:${Math.round(60 * m.against.xg / top)}px;background:var(--them)"></span></td></tr>`).join("") + `</table>`
+    : `<p class="empty">No matches in this period.</p>`;
+  // Running
+  $("squad").innerHTML = run.players.length ? `<table class="mini"><tr><th>Player</th><th>Matches</th><th>Min</th><th>km /90</th><th>High-speed m /90</th><th>Sprints /90</th><th>Top km/h</th></tr>` +
+    run.players.map(p => `<tr><td>${playerLabel(p)}${p.keeper ? " <small>GK</small>" : ""}</td><td>${p.matches}</td><td>${p.minutes}</td>` +
+      `<td>${p.distance_km_p90 ?? "–"}</td><td>${p.hsr_p90 ?? "–"}</td><td>${p.sprints_p90 ?? "–"}</td><td>${p.top_speed_kmh}</td></tr>`).join("") + `</table>`
+    : `<p class="empty">No tracking in this period.</p>`;
+  const most = Math.max(1, ...run.matches.flatMap(m => [m.hsr_m, m.opponent_hsr_m]));
+  $("team-run").innerHTML = run.matches.length ? `<table class="mini"><tr><th>Match</th><th>km</th><th>High-speed m, ours</th><th>Theirs</th><th>Sprints</th></tr>` +
+    run.matches.slice().reverse().map(m => `<tr><td>${esc(m.kickoff.slice(5, 10))} v ${esc(m.opponent)}</td><td>${m.distance_km}</td>` +
+      `<td>${m.hsr_m.toLocaleString()}<span class="bar-in" style="width:${Math.round(70 * m.hsr_m / most)}px;background:var(--us)"></span></td>` +
+      `<td>${m.opponent_hsr_m.toLocaleString()}<span class="bar-in" style="width:${Math.round(70 * m.opponent_hsr_m / most)}px;background:var(--them)"></span></td><td>${m.sprints}</td></tr>`).join("") + `</table>` : "";
+  document.title = `Season · ${club(us)?.name || "Match analysis"}`;
+  bindTips(document.body);
+}
+$("period").onchange = e => { state.period = e.target.value; $("opponent").innerHTML = ""; load(); };
+$("opponent").onchange = e => { state.opponent = e.target.value; load(); };
+onSignedIn = load;
+leagueReady.then(() => { if (!auth.name) signIn(); else load(); });
+</script>
+</body>
+</html>
